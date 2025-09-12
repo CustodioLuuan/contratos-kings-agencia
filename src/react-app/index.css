@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+:root {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  --kings-primary: #dbfb36;
+  --kings-primary-dark: #c8e831;
+  --kings-bg-primary: #050505;
+  --kings-bg-secondary: #0a0a0a;
+  --kings-bg-tertiary: #0f0f0f;
+  --kings-border: #191919;
+  --kings-text-primary: #ffffff;
+  --kings-text-secondary: #e6e6e6;
+  --kings-text-muted: #999999;
+  --kings-text-subtle: #666666;
+}
