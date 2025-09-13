@@ -11,6 +11,9 @@ export default function SignContract() {
   const [signing, setSigning] = useState(false);
   const [signed, setSigned] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [points, setPoints] = useState<number[][]>([]);
+  const [allStrokes, setAllStrokes] = useState<number[][][]>([]);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
@@ -40,26 +43,89 @@ export default function SignContract() {
   }, [token]);
 
   useEffect(() => {
+    const initCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set canvas size
-    canvas.width = canvas.offsetWidth;
-    canvas.height = 200;
+      // Configuração do canvas para alta resolução
+      const ratio = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      
+      // Define o tamanho real do canvas
+      canvas.width = rect.width * ratio;
+      canvas.height = rect.height * ratio;
+      
+      // Escala o contexto para corresponder ao devicePixelRatio
+      ctx.scale(ratio, ratio);
+      
+      // Ajusta o tamanho CSS do canvas
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = rect.height + 'px';
 
-    // Set drawing style
-    ctx.strokeStyle = '#050505';
-    ctx.lineWidth = 2;
+      // Set drawing style for smooth lines
+      ctx.lineWidth = 3.0;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#000000';
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.shadowColor = '#000000';
+      ctx.shadowBlur = 0.5;
 
     // Fill with white background
     ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, rect.width, rect.height);
+      
+      console.log('Canvas initialized:', {
+        width: canvas.width,
+        height: canvas.height,
+        offsetWidth: canvas.offsetWidth,
+        offsetHeight: canvas.offsetHeight,
+        ratio,
+        rect: rect
+      });
+    };
+
+    // Delay para garantir que o DOM esteja carregado
+    setTimeout(initCanvas, 100);
   }, []);
+
+  const getPosition = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, canvas: HTMLCanvasElement) => {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    
+    // Calcula posição relativa ao canvas
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    
+    return [x, y];
+  };
+
+  // Filtro de suavização para reduzir tremores
+  const smoothPoints = (points: number[][]) => {
+    if (points.length < 3) return points;
+    
+    const smoothed = [points[0]]; // Primeiro ponto sem alteração
+    
+    for (let i = 1; i < points.length - 1; i++) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      const next = points[i + 1];
+      
+      // Aplica filtro de média móvel para suavizar
+      const smoothedX = (prev[0] + curr[0] + next[0]) / 3;
+      const smoothedY = (prev[1] + curr[1] + next[1]) / 3;
+      
+      smoothed.push([smoothedX, smoothedY]);
+    }
+    
+    smoothed.push(points[points.length - 1]); // Último ponto sem alteração
+    return smoothed;
+  };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (signed) return;
@@ -68,15 +134,9 @@ export default function SignContract() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.beginPath();
-    ctx.moveTo(x, y);
+    const newPoints = [getPosition(e, canvas)];
+    console.log('Start drawing at:', newPoints[0]);
+    setPoints(newPoints);
   };
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -85,19 +145,92 @@ export default function SignContract() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const newPoints = [...points, getPosition(e, canvas)];
+    setPoints(newPoints);
+    redraw(canvas, newPoints);
+  };
 
+  const redraw = (canvas: HTMLCanvasElement, currentPoints: number[][]) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.lineTo(x, y);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Desenha todos os traços anteriores
+    allStrokes.forEach(stroke => {
+      if (stroke.length < 2) return;
+
+      const smoothedPoints = smoothPoints(stroke);
+      ctx.beginPath();
+      ctx.moveTo(smoothedPoints[0][0], smoothedPoints[0][1]);
+
+      // Algoritmo de suavização melhorado para curvas ultra-suaves
+      for (let i = 1; i < smoothedPoints.length - 1; i++) {
+        const [x1, y1] = smoothedPoints[i - 1];
+        const [x2, y2] = smoothedPoints[i];
+        const [x3, y3] = smoothedPoints[i + 1];
+        
+        // Calcula pontos de controle para curvas Bézier cúbicas mais suaves
+        const cp1x = x1 + (x2 - x1) * 0.5;
+        const cp1y = y1 + (y2 - y1) * 0.5;
+        const cp2x = x2 - (x3 - x2) * 0.5;
+        const cp2y = y2 - (y3 - y2) * 0.5;
+        
+        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x2, y2);
+      }
+      
+      // Último ponto com curva quadrática
+      if (smoothedPoints.length > 1) {
+        const lastIndex = smoothedPoints.length - 1;
+        const [x1, y1] = smoothedPoints[lastIndex - 1];
+        const [x2, y2] = smoothedPoints[lastIndex];
+        const [xMid, yMid] = [(x1 + x2) / 2, (y1 + y2) / 2];
+        ctx.quadraticCurveTo(x1, y1, xMid, yMid);
+      }
+      
+      ctx.stroke();
+    });
+
+    // Desenha o traço atual
+    if (currentPoints.length < 2) return;
+
+    const smoothedPoints = smoothPoints(currentPoints);
+    ctx.beginPath();
+    ctx.moveTo(smoothedPoints[0][0], smoothedPoints[0][1]);
+
+    // Algoritmo de suavização melhorado para curvas ultra-suaves
+    for (let i = 1; i < smoothedPoints.length - 1; i++) {
+      const [x1, y1] = smoothedPoints[i - 1];
+      const [x2, y2] = smoothedPoints[i];
+      const [x3, y3] = smoothedPoints[i + 1];
+      
+      // Calcula pontos de controle para curvas Bézier cúbicas mais suaves
+      const cp1x = x1 + (x2 - x1) * 0.5;
+      const cp1y = y1 + (y2 - y1) * 0.5;
+      const cp2x = x2 - (x3 - x2) * 0.5;
+      const cp2y = y2 - (y3 - y2) * 0.5;
+      
+      ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x2, y2);
+    }
+    
+    // Último ponto com curva quadrática
+    if (smoothedPoints.length > 1) {
+      const lastIndex = smoothedPoints.length - 1;
+      const [x1, y1] = smoothedPoints[lastIndex - 1];
+      const [x2, y2] = smoothedPoints[lastIndex];
+      const [xMid, yMid] = [(x1 + x2) / 2, (y1 + y2) / 2];
+      ctx.quadraticCurveTo(x1, y1, xMid, yMid);
+    }
+    
     ctx.stroke();
   };
 
   const stopDrawing = () => {
+    if (points.length > 0) {
+      setAllStrokes(prev => [...prev, points]);
+    }
     setIsDrawing(false);
+    setPoints([]);
   };
 
   const clearSignature = () => {
@@ -109,9 +242,56 @@ export default function SignContract() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setPoints([]);
+    setAllStrokes([]);
   };
+
+  const toggleFullscreen = () => {
+    if (!isFullscreen) {
+      // Entrar em tela cheia
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen();
+      } else if ((document.documentElement as any).webkitRequestFullscreen) {
+        (document.documentElement as any).webkitRequestFullscreen();
+      } else if ((document.documentElement as any).msRequestFullscreen) {
+        (document.documentElement as any).msRequestFullscreen();
+      }
+      setIsFullscreen(true);
+    } else {
+      // Sair da tela cheia
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      } else if ((document as any).msExitFullscreen) {
+        (document as any).msExitFullscreen();
+      }
+      setIsFullscreen(false);
+    }
+  };
+
+  // Detectar mudanças de tela cheia
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isCurrentlyFullscreen = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isCurrentlyFullscreen);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('msfullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   const handleSign = async () => {
     const canvas = canvasRef.current;
@@ -221,82 +401,285 @@ export default function SignContract() {
           </div>
 
           <div className="prose max-w-none text-kings-text-secondary leading-relaxed">
-            <p className="mb-4">
-              <strong>CONTRATANTE:</strong> {contract.client_name}, portador(a) do CPF/CNPJ nº {contract.client_document}
-              {contract.client_email && `, email: ${contract.client_email}`}
-              {contract.client_phone && `, telefone: ${contract.client_phone}`}.
-            </p>
-
-            <p className="mb-4">
-              <strong>CONTRATADA:</strong> Kings Agência, empresa especializada em marketing digital e desenvolvimento de negócios.
-            </p>
-
-            <h4 className="text-lg font-semibold mt-6 mb-3 text-kings-primary">1. OBJETO DO CONTRATO</h4>
-            <p className="mb-4">
-              A CONTRATADA se compromete a prestar serviços de marketing digital, incluindo mas não limitado a: 
-              criação de conteúdo, gestão de redes sociais, campanhas publicitárias, consultoria estratégica 
-              e desenvolvimento de materiais promocionais.
-            </p>
-
-            <h4 className="text-lg font-semibold mt-6 mb-3 text-kings-primary">2. VALOR E FORMA DE PAGAMENTO</h4>
-            <p className="mb-4">
-              O valor total dos serviços é de <strong className="text-kings-primary">{formatCurrency(contract.contract_value)}</strong>, 
-              a ser pago até a data de <strong className="text-kings-primary">{formatDate(contract.payment_date)}</strong>.
-            </p>
-
-            <h4 className="text-lg font-semibold mt-6 mb-3 text-kings-primary">3. PRAZO E EXECUÇÃO</h4>
-            <p className="mb-4">
-              Os serviços serão executados conforme cronograma a ser estabelecido entre as partes, 
-              respeitando os prazos acordados e a qualidade esperada.
-            </p>
-
-            <h4 className="text-lg font-semibold mt-6 mb-3 text-kings-primary">4. RESPONSABILIDADES</h4>
-            <p className="mb-4">
-              A CONTRATADA se compromete a executar os serviços com qualidade e profissionalismo. 
-              O CONTRATANTE deve fornecer todas as informações e materiais necessários para a execução dos serviços.
-            </p>
-
-            <h4 className="text-lg font-semibold mt-6 mb-3 text-kings-primary">5. DISPOSIÇÕES GERAIS</h4>
-            <p className="mb-4">
-              Este contrato é regido pelas leis brasileiras. Eventuais divergências serão resolvidas 
-              preferencialmente por acordo entre as partes.
-            </p>
-
-            <div className="mt-8 pt-8 border-t border-kings-border">
-              <p className="text-center text-sm text-kings-text-muted mb-6">
-                Data do contrato: {formatDate(contract.created_at)}
+            {/* Partes do Contrato */}
+            <div className="bg-kings-bg-tertiary/30 rounded-lg p-6 mb-8">
+              <h4 className="text-lg font-bold mb-4 text-kings-primary">PARTES</h4>
+              <p className="mb-3">
+                De um lado, <strong>KINGS AGÊNCIA</strong>, inscrito no CPF nº 145.998.009-37, prestando serviços de forma online, doravante denominado <strong>CONTRATADO</strong>;
               </p>
+              <p>
+                E de outro, <strong>{contract.client_name}</strong>, inscrito no CPF nº <strong>{contract.client_document}</strong>, doravante denominado <strong>CONTRATANTE</strong>.
+              </p>
+            </div>
+
+            {/* Cláusulas do Contrato */}
+            <div className="space-y-8">
+              {/* Cláusula 1 - Objeto */}
+              <div>
+                <h4 className="text-xl font-bold mb-4 text-kings-primary border-b border-kings-border pb-2">CLÁUSULA 1 – OBJETO</h4>
+                <div className="space-y-3">
+                  <p>
+                    <span className="font-semibold">1.1</span> O presente contrato tem por objeto a prestação de serviços pelo CONTRATADO ao CONTRATANTE, podendo incluir:
+                  </p>
+                  <ul className="list-disc list-inside ml-6 space-y-1">
+                    <li>Criação, desenvolvimento e manutenção de sites;</li>
+                    <li>Hospedagem e suporte técnico;</li>
+                    <li>Marketing digital, design e outras soluções acordadas.</li>
+                  </ul>
+                  <p>
+                    <span className="font-semibold">1.2</span> O site será desenvolvido de acordo com a escolha e informações fornecidas pelo CONTRATANTE no início do projeto, garantindo que o valor contratado cobre a entrega conforme esse combinado.
+                  </p>
+                  <p>
+                    <span className="font-semibold">1.3</span> Caso o CONTRATANTE solicite alterações ou modificações fora do que foi inicialmente combinado, será cobrada uma taxa adicional de 30% do valor original do contrato, previamente acordada entre as partes.
+                  </p>
+                </div>
+              </div>
+
+              {/* Cláusula 2 - Prazo */}
+              <div>
+                <h4 className="text-xl font-bold mb-4 text-kings-primary border-b border-kings-border pb-2">CLÁUSULA 2 – PRAZO</h4>
+                <p>
+                  <span className="font-semibold">2.1</span> O prazo para entrega dos serviços será definido em cronograma acordado entre as partes.
+                </p>
+              </div>
+
+              {/* Cláusula 3 - Valor e Pagamento */}
+              <div>
+                <h4 className="text-xl font-bold mb-4 text-kings-primary border-b border-kings-border pb-2">CLÁUSULA 3 – VALOR E PAGAMENTO</h4>
+                <div className="space-y-3">
+                  <p>
+                    <span className="font-semibold">3.1</span> O CONTRATANTE pagará ao CONTRATADO o valor total de <strong className="text-kings-primary text-lg">{formatCurrency(contract.contract_value)}</strong>, que deverá ser pago inteiramente no momento da finalização e entrega do site.
+                  </p>
+                  <p>
+                    <span className="font-semibold">3.2</span> Em caso de mensalidade (hospedagem/manutenção), o pagamento ocorrerá todo dia <strong>{new Date(contract.payment_date).getDate()}</strong> de cada mês.
+                  </p>
+                  <p>
+                    <span className="font-semibold">3.3</span> Os valores poderão ser reajustados ou alterados, mediante aviso prévio de 30 (trinta) dias ao CONTRATANTE.
+                  </p>
+                  <p>
+                    <span className="font-semibold">3.4</span> O valor do contrato não será reajustado continuamente; somente poderá haver cobrança adicional em caso de alterações solicitadas pelo CONTRATANTE, conforme Cláusula 1.3.
+                  </p>
+                </div>
+              </div>
+
+              {/* Cláusula 4 - Obrigações do Contratado */}
+              <div>
+                <h4 className="text-xl font-bold mb-4 text-kings-primary border-b border-kings-border pb-2">CLÁUSULA 4 – OBRIGAÇÕES DO CONTRATADO</h4>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Entregar os serviços contratados dentro do prazo estabelecido;</li>
+                  <li>Garantir a confidencialidade das informações do CONTRATANTE;</li>
+                  <li>Prestar suporte técnico conforme acordado.</li>
+                </ul>
+              </div>
+
+              {/* Cláusula 5 - Obrigações do Contratante */}
+              <div>
+                <h4 className="text-xl font-bold mb-4 text-kings-primary border-b border-kings-border pb-2">CLÁUSULA 5 – OBRIGAÇÕES DO CONTRATANTE</h4>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Fornecer informações, conteúdos e materiais necessários para execução dos serviços;</li>
+                  <li>Efetuar os pagamentos nas datas ajustadas;</li>
+                  <li>Respeitar os prazos de aprovação e feedback.</li>
+                </ul>
+              </div>
+
+              {/* Cláusula 6 - Rescisão */}
+              <div>
+                <h4 className="text-xl font-bold mb-4 text-kings-primary border-b border-kings-border pb-2">CLÁUSULA 6 – RESCISÃO</h4>
+                <div className="space-y-3">
+                  <p>
+                    <span className="font-semibold">6.1</span> O presente contrato poderá ser rescindido por qualquer das partes mediante aviso prévio de 30 (trinta) dias.
+                  </p>
+                  <p>
+                    <span className="font-semibold">6.2</span> Em caso de inadimplência, o CONTRATADO poderá suspender os serviços.
+                  </p>
+                </div>
+              </div>
+
+              {/* Cláusula 7 - Foro */}
+              <div>
+                <h4 className="text-xl font-bold mb-4 text-kings-primary border-b border-kings-border pb-2">CLÁUSULA 7 – FORO</h4>
+                <p>
+                  Fica eleito o foro da comarca de Itajaí/SC, com renúncia a qualquer outro, para dirimir quaisquer dúvidas decorrentes deste contrato.
+                </p>
+              </div>
+            </div>
+
+            {/* Assinaturas */}
+            <div className="mt-12 pt-8 border-t-2 border-kings-border">
+              <div className="text-center mb-6">
+                <p className="text-kings-text-muted">
+                  Itajaí/SC, {formatDate(contract.created_at)}.
+                </p>
+              </div>
+              <div className="flex justify-between items-end">
+                <div className="text-center">
+                  <div className="border-t border-kings-border pt-2 w-48">
+                    {/* Logo da Kings Agência */}
+                    <div className="mb-3 flex justify-center">
+                      <img 
+                        src="/kings-logo.png" 
+                        alt="Kings Agência Logo" 
+                        className="h-16 w-auto object-contain"
+                      />
+                    </div>
+                    <p className="text-sm font-semibold text-kings-text-primary">Kings Agência</p>
+                    <p className="text-xs text-kings-text-muted">CONTRATADO</p>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="border-t border-kings-border pt-2 w-48">
+                    <p className="text-sm font-semibold text-kings-text-primary">{contract.client_name}</p>
+                    <p className="text-xs text-kings-text-muted">CONTRATANTE</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Termos de Uso */}
+            <div className="mt-16 pt-8 border-t-2 border-kings-border">
+              <h3 className="text-2xl font-bold text-center mb-8 text-kings-primary">📄 TERMOS DE USO – SITE KINGS AGÊNCIA</h3>
+              
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-lg font-bold mb-3 text-kings-primary">ACEITAÇÃO DOS TERMOS</h4>
+                  <p>
+                    Ao acessar e utilizar o site da Kings Agência, o usuário declara estar ciente e de acordo com as regras aqui estabelecidas.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-bold mb-3 text-kings-primary">SERVIÇOS OFERECIDOS</h4>
+                  <p>
+                    O site pode disponibilizar informações sobre serviços de marketing digital, criação de sites, design e demais soluções.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-bold mb-3 text-kings-primary">RESPONSABILIDADE DO USUÁRIO</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Utilizar o site de forma legal e ética;</li>
+                    <li>Não tentar invadir, copiar ou alterar o sistema;</li>
+                    <li>Fornecer dados verdadeiros em formulários de contato.</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-bold mb-3 text-kings-primary">RESPONSABILIDADE DA KINGS AGÊNCIA</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Manter o site disponível, salvo em casos de manutenção ou força maior;</li>
+                    <li>Proteger os dados pessoais fornecidos, conforme a LGPD (Lei Geral de Proteção de Dados).</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-bold mb-3 text-kings-primary">PROPRIEDADE INTELECTUAL</h4>
+                  <p>
+                    Todo o conteúdo do site (textos, imagens, logotipos e materiais) pertence à Kings Agência e não pode ser reproduzido sem autorização.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-bold mb-3 text-kings-primary">PRIVACIDADE</h4>
+                  <p>
+                    As informações coletadas serão utilizadas exclusivamente para contato e envio de propostas. Não compartilhamos dados com terceiros sem autorização.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-bold mb-3 text-kings-primary">ALTERAÇÕES</h4>
+                  <p>
+                    A Kings Agência poderá atualizar estes Termos a qualquer momento, sendo responsabilidade do usuário consultar regularmente.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-bold mb-3 text-kings-primary">FORO</h4>
+                  <p>
+                    Fica eleito o foro da comarca de Itajaí/SC, para dirimir quaisquer conflitos decorrentes do uso do site.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Signature Section */}
         {!signed && (
-          <div className="bg-kings-bg-secondary/50 backdrop-blur-sm border border-kings-border rounded-lg p-8">
-            <div className="flex items-center space-x-3 mb-6">
+          <div className={`bg-kings-bg-secondary/50 backdrop-blur-sm border border-kings-border rounded-lg p-8 ${isFullscreen ? 'fixed inset-0 z-50 rounded-none' : ''}`}>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
               <div className="bg-kings-primary/20 border border-kings-primary/30 p-2 rounded-lg">
                 <PenTool className="h-5 w-5 text-kings-primary" />
               </div>
               <h3 className="text-xl font-semibold text-kings-text-primary">Assinatura Digital</h3>
+              </div>
+              
+              {/* Botão de tela cheia - apenas em mobile */}
+              <button
+                onClick={toggleFullscreen}
+                className="md:hidden p-2 bg-kings-primary text-white rounded-lg hover:bg-kings-primary/90 transition-colors"
+                title={isFullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
+              >
+                {isFullscreen ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  </svg>
+                )}
+              </button>
             </div>
 
             <p className="text-kings-text-muted mb-6">
               Desenhe sua assinatura no campo abaixo para concordar com os termos do contrato:
             </p>
 
-            <div className="border-2 border-dashed border-kings-border rounded-lg p-4 mb-6">
+            <div className={`border-2 border-dashed border-kings-border rounded-lg p-4 mb-6 ${isFullscreen ? 'h-full' : ''}`}>
               <canvas
                 ref={canvasRef}
-                className="w-full cursor-crosshair border border-kings-border rounded bg-white"
-                style={{ height: '200px' }}
+                className={`border border-kings-border rounded bg-white touch-none ${isFullscreen ? 'w-full h-full' : 'w-full'}`}
+                style={{ 
+                  height: isFullscreen ? 'calc(100vh - 200px)' : '200px',
+                  display: 'block',
+                  margin: '0 auto',
+                  cursor: 'url("data:image/svg+xml;base64,PHN2ZyBjbGFzcz0idzYgaDYgdGV4dC1ncmF5LTgwMCBkYXJrOnRleHQtd2hpdGUiIGFyaWEtaGlkZGVuPSJ0cnVlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0iY3VycmVudENvbG9yIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTE1LjUxNCAzLjI5M2ExIDEgMCAwIDAtMS40MTUgMEwxMi4xNTEgNS4yNGEuOTMuOTMgMCAwIDEgLjA1Ni4wNTJsNi41IDYuNWEuOTcuOTcgMCAwIDEgLjA1Mi4wNTZMMjAuNzA3IDkuOWExIDEgMCAwIDAgMC0xLjQxNWwtNS4xOTMtNS4xOTNaTTcuMDA0IDguMjdsMy44OTItMS40NiA2LjI5MyA2LjI5My0xLjQ2IDMuODkzYTEgMSAwIDAgMS0uNjAzLjU5MWwtOS40OTQgMy4zNTVhMSAxIDAgMCAxLS45OC0uMThsNi40NTItNi40NTNhMSAxIDAgMCAwLTEuNDE0LTEuNDE0bC02LjQ1MyA2LjQ1MmExIDEgMCAwIDEtLjE4LS45OGwzLjM1NS05LjQ5NGExIDEgMCAwIDEgLjU5MS0uNjAzWiIgY2xpcC1ydWxlPSJldmVub2RkIi8+PC9zdmc+") 2 22, auto'
+                }}
                 onMouseDown={startDrawing}
                 onMouseMove={draw}
                 onMouseUp={stopDrawing}
                 onMouseLeave={stopDrawing}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  if (signed) return;
+                  
+                  setIsDrawing(true);
+                  const canvas = canvasRef.current;
+                  if (!canvas) return;
+
+                  const newPoints = [getPosition(e, canvas)];
+                  setPoints(newPoints);
+                }}
+                onTouchMove={(e) => {
+                  e.preventDefault();
+                  if (!isDrawing || signed) return;
+
+                  const canvas = canvasRef.current;
+                  if (!canvas) return;
+
+                  const newPoints = [...points, getPosition(e, canvas)];
+                  setPoints(newPoints);
+                  redraw(canvas, newPoints);
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  stopDrawing();
+                }}
               />
             </div>
 
-            <div className="flex justify-between items-center">
+            <div className={`flex justify-between items-center ${isFullscreen ? 'fixed bottom-4 left-4 right-4' : ''}`}>
               <button
                 onClick={clearSignature}
                 className="px-4 py-2 bg-kings-bg-tertiary hover:bg-kings-bg-tertiary/70 border border-kings-border text-kings-text-secondary rounded-lg font-medium transition-colors"

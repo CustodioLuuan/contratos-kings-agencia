@@ -1,17 +1,46 @@
-import { useEffect } from 'react';
-import { useAuth } from '@getmocha/users-service/react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { FileText, Shield, Zap, Crown } from 'lucide-react';
 
 export default function Home() {
-  const { user, isPending, redirectToLogin } = useAuth();
+  const [user, setUser] = useState(null);
+  const [isPending, setIsPending] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Verificar se o usuário está logado
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/users/me', {
+          credentials: 'include',
+        });
+        
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+        setUser(null);
+      } finally {
+        setIsPending(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   useEffect(() => {
     if (!isPending && user) {
       navigate('/dashboard');
     }
   }, [user, isPending, navigate]);
+
+  const redirectToLogin = () => {
+    navigate('/login');
+  };
 
   if (isPending) {
     return (

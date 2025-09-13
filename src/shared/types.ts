@@ -7,6 +7,7 @@ export const ContractSchema = z.object({
   client_document: z.string(),
   client_email: z.string().nullable(),
   client_phone: z.string().nullable(),
+  company_name: z.string().nullable(),
   contract_value: z.number(),
   payment_date: z.string(),
   status: z.enum(['pending', 'signed']),
@@ -24,6 +25,7 @@ export const CreateContractSchema = z.object({
   client_document: z.string().min(11, "CPF ou CNPJ é obrigatório"),
   client_email: z.string().email("Email inválido").optional(),
   client_phone: z.string().optional(),
+  company_name: z.string().optional(),
   contract_value: z.number().positive("Valor deve ser maior que zero"),
   payment_date: z.string().min(1, "Data de pagamento é obrigatória"),
 });

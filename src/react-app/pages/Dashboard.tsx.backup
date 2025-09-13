@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router';
-import { Crown, User, LogOut, Clock, CheckCircle, DollarSign, Plus, FileText, Download, MoreVertical, Edit, Trash2, Link, Copy, CheckCircle2, X, Search } from 'lucide-react';
+import { Crown, User, LogOut, Clock, CheckCircle, DollarSign, Plus, FileText, Download, MoreVertical, Edit, Trash2, Link, Copy, CheckCircle2, X, Search, CreditCard, Calendar, AlertCircle, TrendingUp, Receipt, Menu, X as CloseIcon } from 'lucide-react';
 
 interface Contract {
   id: number;
@@ -27,6 +27,9 @@ export default function Dashboard() {
   const [contractToDelete, setContractToDelete] = useState<Contract | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'signed' | 'pending'>('all');
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'pending' | 'overdue' | 'paid'>('all');
+  const [activeTab, setActiveTab] = useState<'contracts' | 'payments'>('contracts');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     // Verificar se o usuário está logado
@@ -167,6 +170,22 @@ export default function Dashboard() {
   const pendingContracts = contracts.filter(c => c.status === 'pending').length;
   const signedContracts = contracts.filter(c => c.status === 'signed').length;
   const totalValue = contracts.reduce((sum, c) => sum + c.contract_value, 0);
+
+  // Cálculos para gestão de pagamentos
+  const today = new Date();
+  const pendingPayments = contracts.filter(c => {
+    const paymentDate = new Date(c.payment_date);
+    return c.status === 'signed' && paymentDate > today;
+  });
+  
+  const overduePayments = contracts.filter(c => {
+    const paymentDate = new Date(c.payment_date);
+    return c.status === 'signed' && paymentDate < today;
+  });
+  
+  const paidValue = contracts.filter(c => c.status === 'signed').reduce((sum, c) => sum + c.contract_value, 0);
+  const pendingValue = pendingPayments.reduce((sum, c) => sum + c.contract_value, 0);
+  const overdueValue = overduePayments.reduce((sum, c) => sum + c.contract_value, 0);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -394,6 +413,204 @@ export default function Dashboard() {
               <div className="bg-kings-primary/20 border border-kings-primary/30 p-3 rounded-lg">
                 <DollarSign className="h-6 w-6 text-kings-primary" />
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Payment Management Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-kings-text-primary mb-6 flex items-center">
+            <CreditCard className="h-6 w-6 mr-3 text-kings-primary" />
+            Gestão de Pagamentos
+          </h2>
+          
+          {/* Payment Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-kings-bg-secondary/50 backdrop-blur-sm border border-kings-border rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-kings-text-muted text-sm font-medium">Valor Total</p>
+                  <p className="text-xl font-bold text-kings-text-primary">{formatCurrency(paidValue)}</p>
+                </div>
+                <div className="bg-green-500/20 border border-green-500/30 p-2 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-green-500" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-kings-bg-secondary/50 backdrop-blur-sm border border-kings-border rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-kings-text-muted text-sm font-medium">Pendentes</p>
+                  <p className="text-xl font-bold text-kings-text-primary">{pendingPayments.length}</p>
+                  <p className="text-xs text-kings-text-muted">{formatCurrency(pendingValue)}</p>
+                </div>
+                <div className="bg-blue-500/20 border border-blue-500/30 p-2 rounded-lg">
+                  <Calendar className="h-5 w-5 text-blue-500" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-kings-bg-secondary/50 backdrop-blur-sm border border-kings-border rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-kings-text-muted text-sm font-medium">Em Atraso</p>
+                  <p className="text-xl font-bold text-red-400">{overduePayments.length}</p>
+                  <p className="text-xs text-red-400">{formatCurrency(overdueValue)}</p>
+                </div>
+                <div className="bg-red-500/20 border border-red-500/30 p-2 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-red-500" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-kings-bg-secondary/50 backdrop-blur-sm border border-kings-border rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-kings-text-muted text-sm font-medium">Taxa de Recebimento</p>
+                  <p className="text-xl font-bold text-kings-text-primary">
+                    {contracts.length > 0 ? Math.round((signedContracts / contracts.length) * 100) : 0}%
+                  </p>
+                </div>
+                <div className="bg-kings-primary/20 border border-kings-primary/30 p-2 rounded-lg">
+                  <Receipt className="h-5 w-5 text-kings-primary" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment Filter */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setPaymentFilter('all')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                paymentFilter === 'all'
+                  ? 'bg-kings-primary text-kings-bg-primary'
+                  : 'bg-kings-bg-tertiary text-kings-text-secondary hover:bg-kings-bg-tertiary/70 border border-kings-border'
+              }`}
+            >
+              Todos
+            </button>
+            <button
+              onClick={() => setPaymentFilter('pending')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                paymentFilter === 'pending'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-kings-bg-tertiary text-kings-text-secondary hover:bg-kings-bg-tertiary/70 border border-kings-border'
+              }`}
+            >
+              Pendentes
+            </button>
+            <button
+              onClick={() => setPaymentFilter('overdue')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                paymentFilter === 'overdue'
+                  ? 'bg-red-500 text-white'
+                  : 'bg-kings-bg-tertiary text-kings-text-secondary hover:bg-kings-bg-tertiary/70 border border-kings-border'
+              }`}
+            >
+              Em Atraso
+            </button>
+            <button
+              onClick={() => setPaymentFilter('paid')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                paymentFilter === 'paid'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-kings-bg-tertiary text-kings-text-secondary hover:bg-kings-bg-tertiary/70 border border-kings-border'
+              }`}
+            >
+              Pagos
+            </button>
+          </div>
+
+          {/* Payment List */}
+          <div className="bg-kings-bg-secondary/50 backdrop-blur-sm border border-kings-border rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-kings-bg-tertiary/50">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-kings-text-primary">Cliente</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-kings-text-primary">Valor</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-kings-text-primary">Data de Pagamento</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-kings-text-primary">Status</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-kings-text-primary">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-kings-border">
+                  {contracts
+                    .filter(contract => {
+                      if (contract.status !== 'signed') return false;
+                      
+                      const paymentDate = new Date(contract.payment_date);
+                      const isOverdue = paymentDate < today;
+                      const isPending = paymentDate > today;
+                      
+                      switch (paymentFilter) {
+                        case 'pending':
+                          return isPending;
+                        case 'overdue':
+                          return isOverdue;
+                        case 'paid':
+                          return false; // Para contratos assinados, consideramos como "pagos" para fins de exibição
+                        default:
+                          return true;
+                      }
+                    })
+                    .map((contract) => {
+                      const paymentDate = new Date(contract.payment_date);
+                      const isOverdue = paymentDate < today;
+                      const isPending = paymentDate > today;
+                      
+                      return (
+                        <tr key={contract.id} className="hover:bg-kings-bg-tertiary/30 transition-colors duration-200">
+                          <td className="px-6 py-4">
+                            <div>
+                              <div className="font-medium text-kings-text-primary">{contract.client_name}</div>
+                              <div className="text-sm text-kings-text-muted">{contract.client_document}</div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-kings-text-secondary font-medium">
+                            {formatCurrency(contract.contract_value)}
+                          </td>
+                          <td className="px-6 py-4 text-kings-text-secondary">
+                            {formatDate(contract.payment_date)}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                isOverdue
+                                  ? 'bg-red-500/20 text-red-400'
+                                  : isPending
+                                  ? 'bg-blue-500/20 text-blue-400'
+                                  : 'bg-green-500/20 text-green-400'
+                              }`}
+                            >
+                              {isOverdue ? 'Em Atraso' : isPending ? 'Pendente' : 'Pago'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleCopyLink(contract)}
+                                className="text-kings-text-muted hover:text-kings-text-primary transition-colors"
+                                title="Copiar link"
+                              >
+                                <Link className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDownloadPDF(contract)}
+                                className="text-kings-text-muted hover:text-kings-text-primary transition-colors"
+                                title="Download PDF"
+                              >
+                                <Download className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

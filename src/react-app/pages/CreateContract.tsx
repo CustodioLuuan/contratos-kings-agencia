@@ -1,33 +1,120 @@
-import { useState } from 'react';
-import { useAuth } from '@getmocha/users-service/react';
-import { useNavigate } from 'react-router';
-import { Crown, ArrowLeft, FileText, DollarSign, Calendar, User, Phone, Mail, Save } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router';
+import { Crown, ArrowLeft, FileText, DollarSign, Calendar, User, Phone, Mail, Save, Eye, Download } from 'lucide-react';
 import type { CreateContract } from '@/shared/types';
+import { generateContractPDF } from '../components/ContractGenerator';
 
 export default function CreateContract() {
-  const { user, isPending } = useAuth();
+  const [user, setUser] = useState(null);
+  const [isPending, setIsPending] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
+  
+  // Detectar se está em modo de edição
+  const isEditMode = location.state?.editMode || false;
+  const contractData = location.state?.contractData || null;
   const [formData, setFormData] = useState<CreateContract>({
     client_name: '',
     client_document: '',
     client_email: '',
     client_phone: '',
+    company_name: '',
     contract_value: 0,
     payment_date: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  if (!isPending && !user) {
-    navigate('/');
-    return null;
+  useEffect(() => {
+    // Verificar se o usuário está logado
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/users/me', {
+          credentials: 'include',
+        });
+        
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+        } else {
+          navigate('/login');
+        }
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+        navigate('/login');
+      } finally {
+        setIsPending(false);
+      }
+    };
+
+    checkAuth();
+  }, [navigate]);
+
+  // Preencher dados quando estiver em modo de edição
+  useEffect(() => {
+    if (isEditMode && contractData) {
+      setFormData({
+        client_name: contractData.client_name || '',
+        client_document: contractData.client_document || '',
+        client_email: contractData.client_email || '',
+        client_phone: contractData.client_phone || '',
+        company_name: contractData.company_name || '',
+        contract_value: contractData.contract_value || 0,
+        payment_date: contractData.payment_date || '',
+      });
+    }
+  }, [isEditMode, contractData]);
+
+  if (isPending) {
+    return (
+      <div className="min-h-screen bg-kings-bg-primary flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-kings-primary"></div>
+      </div>
+    );
   }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-kings-bg-primary flex items-center justify-center">
+        <div className="text-center text-kings-text-primary">
+          <h2 className="text-2xl font-semibold mb-4">Redirecionando...</h2>
+          <p className="text-kings-text-muted">Você será redirecionado para a página de login</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Função para formatar telefone no padrão brasileiro
+  const formatPhoneNumber = (value: string): string => {
+    // Remove todos os caracteres não numéricos
+    const numbers = value.replace(/\D/g, '');
+    
+    // Limita a 11 dígitos (DDD + 9 dígitos)
+    const limitedNumbers = numbers.slice(0, 11);
+    
+    // Aplica a formatação baseada no tamanho
+    if (limitedNumbers.length <= 2) {
+      return limitedNumbers;
+    } else if (limitedNumbers.length <= 7) {
+      return `(${limitedNumbers.slice(0, 2)}) ${limitedNumbers.slice(2)}`;
+    } else {
+      return `(${limitedNumbers.slice(0, 2)}) ${limitedNumbers.slice(2, 7)}-${limitedNumbers.slice(7)}`;
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    
+    let processedValue = value;
+    
+    // Aplicar formatação específica para telefone
+    if (name === 'client_phone') {
+      processedValue = formatPhoneNumber(value);
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'contract_value' ? parseFloat(value) || 0 : value
+      [name]: name === 'contract_value' ? parseFloat(value) || 0 : processedValue
     }));
     
     // Clear error when user starts typing
@@ -65,6 +152,11 @@ export default function CreateContract() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handlePreviewContract = () => {
+    if (!validateForm()) return;
+    generateContractPDF(formData);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -72,38 +164,60 @@ export default function CreateContract() {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/contracts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(formData),
-      });
+      if (isEditMode && contractData) {
+        // Modo de edição - atualizar contrato existente
+        const response = await fetch(`/api/contracts/${contractData.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(formData),
+        });
 
-      if (response.ok) {
-        const result = await response.json();
-        alert(`Contrato criado com sucesso! Link para assinatura: ${window.location.origin}${result.signature_link}`);
-        navigate('/dashboard');
+        if (response.ok) {
+          alert('Contrato atualizado com sucesso!');
+          navigate('/dashboard');
+        } else {
+          const error = await response.json();
+          alert(`Erro ao atualizar contrato: ${error.error || 'Erro desconhecido'}`);
+        }
       } else {
-        const error = await response.json();
-        alert(`Erro ao criar contrato: ${error.error || 'Erro desconhecido'}`);
+        // Modo de criação - criar novo contrato
+        const response = await fetch('/api/contracts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(formData),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const signatureLink = `${window.location.origin}${result.signature_link}`;
+          
+          // Copiar o link automaticamente para a área de transferência
+          try {
+            await navigator.clipboard.writeText(signatureLink);
+          } catch (err) {
+            console.error('Erro ao copiar link:', err);
+          }
+          
+          // Redirecionar para dashboard com estado de notificação
+          navigate('/dashboard', { state: { contractCreated: true } });
+        } else {
+          const error = await response.json();
+          alert(`Erro ao criar contrato: ${error.error || 'Erro desconhecido'}`);
+        }
       }
     } catch (error) {
-      console.error('Error creating contract:', error);
-      alert('Erro ao criar contrato. Tente novamente.');
+      console.error('Error:', error);
+      alert(`Erro ${isEditMode ? 'ao atualizar' : 'ao criar'} contrato. Tente novamente.`);
     } finally {
       setLoading(false);
     }
   };
-
-  if (isPending) {
-    return (
-      <div className="min-h-screen bg-kings-bg-primary flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-kings-primary"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-kings-bg-primary text-kings-text-primary font-space">
@@ -123,9 +237,11 @@ export default function CreateContract() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-kings-primary">
-                  Novo Contrato
+                  {isEditMode ? 'Editar Contrato' : 'Novo Contrato'}
                 </h1>
-                <p className="text-sm text-kings-text-muted">Preencha os dados do cliente</p>
+                <p className="text-sm text-kings-text-muted">
+                  {isEditMode ? 'Edite os dados do cliente' : 'Preencha os dados do cliente'}
+                </p>
               </div>
             </div>
           </div>
@@ -220,6 +336,23 @@ export default function CreateContract() {
               </div>
             </div>
 
+            {/* Company Name */}
+            <div>
+              <label htmlFor="company_name" className="block text-sm font-medium text-kings-text-secondary mb-2">
+                <FileText className="h-4 w-4 inline mr-2" />
+                Nome da Empresa (opcional)
+              </label>
+              <input
+                type="text"
+                id="company_name"
+                name="company_name"
+                value={formData.company_name}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 bg-kings-bg-tertiary border border-kings-border rounded-lg focus:ring-2 focus:ring-kings-primary focus:border-transparent text-kings-text-primary placeholder-kings-text-subtle"
+                placeholder="Nome da empresa do cliente"
+              />
+            </div>
+
             {/* Contract Details */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -258,32 +391,67 @@ export default function CreateContract() {
               </div>
             </div>
 
-            {/* Submit Button */}
-            <div className="flex justify-end space-x-4 pt-6 border-t border-kings-border">
-              <button
-                type="button"
-                onClick={() => navigate('/dashboard')}
-                className="px-6 py-3 bg-kings-bg-tertiary hover:bg-kings-bg-tertiary/70 border border-kings-border rounded-lg font-medium transition-colors text-kings-text-secondary"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex items-center space-x-2 px-6 py-3 bg-kings-primary hover:bg-kings-primary-dark rounded-lg font-medium transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed text-kings-bg-primary"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-kings-bg-primary"></div>
-                    <span>Criando...</span>
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    <span>Gerar Contrato</span>
-                  </>
-                )}
-              </button>
+            {/* Action Buttons */}
+            <div className="pt-6 border-t border-kings-border">
+              {/* Desktop Layout */}
+              <div className="hidden md:flex justify-end items-center">
+                <div className="flex space-x-4">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/dashboard')}
+                    className="px-6 py-3 bg-kings-bg-tertiary hover:bg-kings-bg-tertiary/70 border border-kings-border rounded-lg font-medium transition-colors text-kings-text-secondary"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex items-center space-x-2 px-6 py-3 bg-kings-primary hover:bg-kings-primary-dark rounded-lg font-medium transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed text-kings-bg-primary"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-kings-bg-primary"></div>
+                        <span>{isEditMode ? 'Atualizando...' : 'Criando...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" />
+                        <span>{isEditMode ? 'Atualizar Contrato' : 'Gerar Contrato'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Mobile Layout */}
+              <div className="md:hidden">
+                <div className="flex space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/dashboard')}
+                    className="flex-1 px-4 py-3 bg-kings-bg-tertiary hover:bg-kings-bg-tertiary/70 border border-kings-border rounded-lg font-medium transition-colors text-kings-text-secondary"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-kings-primary hover:bg-kings-primary-dark rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-kings-bg-primary"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-kings-bg-primary"></div>
+                        <span>Criando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" />
+                        <span>Gerar</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </form>
         </div>
