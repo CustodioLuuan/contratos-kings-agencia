@@ -53,7 +53,7 @@ export default function Dashboard() {
     const checkAuth = async () => {
       console.log('Dashboard: Verificando autenticação...');
       try {
-        const response = await fetch('/api/users/me', {
+        const response = await fetch('/api/auth/me', {
           credentials: 'include',
         });
         

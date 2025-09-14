@@ -29,7 +29,7 @@ export default function CreateContract() {
     // Verificar se o usuário está logado
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/users/me', {
+        const response = await fetch('/api/auth/me', {
           credentials: 'include',
         });
         
