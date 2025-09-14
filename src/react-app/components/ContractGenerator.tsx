@@ -23,9 +23,9 @@ export function generateContractPDF(data: ContractData): void {
   const addText = (text: string, fontSize: number = 12, isBold: boolean = false, align: 'left' | 'center' | 'right' = 'left') => {
     doc.setFontSize(fontSize);
     if (isBold) {
-      doc.setFont(undefined, 'bold');
+      doc.setFont('helvetica', 'bold');
     } else {
-      doc.setFont(undefined, 'normal');
+      doc.setFont('helvetica', 'normal');
     }
     
     const lines = doc.splitTextToSize(text, contentWidth);
@@ -34,9 +34,6 @@ export function generateContractPDF(data: ContractData): void {
   };
   
   // Função para adicionar quebra de linha
-  const addLineBreak = (lines: number = 1) => {
-    yPosition += lines * 10;
-  };
   
   // Template exato fornecido pelo usuário
   const contractTemplate = `📄 CONTRATO DE PRESTAÇÃO DE SERVIÇOS – KINGS AGÊNCIA
