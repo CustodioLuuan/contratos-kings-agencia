@@ -7,10 +7,6 @@ import { v4 as uuidv4 } from 'uuid';
 
 const MOCHA_SESSION_TOKEN_COOKIE_NAME = 'mocha-session-token';
 
-interface Env {
-  DB: any; // D1Database type not available in build
-}
-
 const app = new Hono<{ Bindings: Env }>();
 
 app.use('*', cors({
@@ -34,7 +30,7 @@ app.post('/api/auth/login', async (c) => {
     if (email === 'admin@kings.com' && password === '123456') {
       const sessionToken = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
       
-      // Login bem-sucedido, criando sessão
+      console.log('Login bem-sucedido, criando sessão:', sessionToken);
       
       setCookie(c, MOCHA_SESSION_TOKEN_COOKIE_NAME, sessionToken, {
         httpOnly: true,
@@ -57,7 +53,7 @@ app.post('/api/auth/login', async (c) => {
       return c.json({ error: 'Email ou senha incorretos' }, 401);
     }
   } catch (error) {
-    // Login error
+    console.error('Login error:', error);
     return c.json({ error: 'Erro interno do servidor' }, 500);
   }
 });
@@ -78,10 +74,10 @@ app.post('/api/auth/logout', async (c) => {
 app.get("/api/users/me", async (c) => {
   const sessionToken = getCookie(c, MOCHA_SESSION_TOKEN_COOKIE_NAME);
   
-  // Verificando autenticação
+  console.log('Verificando autenticação, token:', sessionToken);
   
   if (!sessionToken) {
-    // Nenhum token encontrado, retornando 401
+    console.log('Nenhum token encontrado, retornando 401');
     return c.json({ error: 'Não autenticado' }, 401);
   }
   
@@ -93,7 +89,7 @@ app.get("/api/users/me", async (c) => {
     picture: 'https://via.placeholder.com/150'
   };
   
-  // Usuário autenticado, retornando dados
+  console.log('Usuário autenticado, retornando dados:', mockUser);
   return c.json(mockUser);
 });
 
@@ -250,7 +246,7 @@ app.put('/api/contracts/:id', async (c) => {
 
     return c.json({ success: true, message: 'Contrato atualizado com sucesso!' });
   } catch (error) {
-    // Erro ao atualizar contrato
+    console.error('Erro ao atualizar contrato:', error);
     return c.json({ error: 'Erro interno do servidor' }, 500);
   }
 });
