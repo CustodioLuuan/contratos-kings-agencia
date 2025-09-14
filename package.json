@@ -123,5 +123,9 @@
       "icon": "electron/assets/icon.png",
       "category": "Office"
     }
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.50.1",
+    "@rollup/rollup-linux-x64-musl": "^4.50.1"
   }
 }
