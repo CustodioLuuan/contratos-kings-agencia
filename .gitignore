@@ -5,3 +5,5 @@ node_modules/
 worker-configuration.d.ts
 
 .vercel
+
+.vercel

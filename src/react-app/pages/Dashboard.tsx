@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router';
-import { Crown, User, LogOut, Clock, CheckCircle, DollarSign, Plus, FileText, Download, MoreVertical, Edit, Trash2, Link, Copy, CheckCircle2, X, Search } from 'lucide-react';
+import { Crown, User, LogOut, Clock, CheckCircle, DollarSign, Plus, FileText, Download, MoreVertical, Edit, Trash2, Copy, X, Search } from 'lucide-react';
 import DropdownMenu from '../components/DropdownMenu';
 import Notification, { NotificationType } from '../components/Notification';
 
@@ -8,6 +8,9 @@ interface Contract {
   id: number;
   client_name: string;
   client_document: string;
+  client_email?: string;
+  client_phone?: string;
+  company_name?: string;
   contract_value: number;
   payment_date: string;
   status: 'pending' | 'signed';
@@ -24,7 +27,6 @@ export default function Dashboard() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
-  const [showNotification, setShowNotification] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [contractToDelete, setContractToDelete] = useState<Contract | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -346,7 +348,7 @@ export default function Dashboard() {
                 <div className="w-8 h-8 bg-kings-primary rounded-full flex items-center justify-center">
                   <User className="h-4 w-4 text-kings-bg-primary" />
                 </div>
-                <span className="text-kings-text-primary font-medium">{user?.name}</span>
+                <span className="text-kings-text-primary font-medium">{(user as any)?.name}</span>
               </div>
               <button
                 onClick={handleLogout}
@@ -576,7 +578,7 @@ export default function Dashboard() {
                           <DropdownMenu
                             isOpen={openMenuId === contract.id}
                             onClose={() => setOpenMenuId(null)}
-                            triggerRef={currentButtonRef}
+                            triggerRef={currentButtonRef as React.RefObject<HTMLButtonElement>}
                           >
                             <div className="py-1">
                               <button
