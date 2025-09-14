@@ -151,7 +151,7 @@ app.get('/api/contracts', async (c) => {
   }
   
   const { results } = await c.env.DB.prepare(`
-    SELECT id, client_name, client_document, client_email, client_phone, company_name, contract_value, payment_date, status, signed_at, created_at
+    SELECT id, client_name, client_document, client_email, client_phone, company_name, contract_value, payment_date, status, signature_link_token, signed_at, created_at
     FROM contracts 
     WHERE user_id = ? 
     ORDER BY created_at DESC

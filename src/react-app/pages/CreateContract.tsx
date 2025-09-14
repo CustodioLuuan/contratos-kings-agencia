@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router';
-import { Crown, ArrowLeft, FileText, DollarSign, Calendar, User, Phone, Mail, Save, Eye, Download } from 'lucide-react';
+import { Crown, ArrowLeft, FileText, DollarSign, Calendar, User, Phone, Mail, Save } from 'lucide-react';
 import type { CreateContract } from '@/shared/types';
 import { generateContractPDF } from '../components/ContractGenerator';
 
@@ -102,6 +102,23 @@ export default function CreateContract() {
     }
   };
 
+  // Função para formatar CPF/CNPJ
+  const formatDocument = (value: string): string => {
+    // Remove tudo que não é dígito
+    const numbers = value.replace(/\D/g, '');
+    
+    // Limita a 14 dígitos (máximo para CNPJ)
+    const limitedNumbers = numbers.slice(0, 14);
+    
+    if (limitedNumbers.length <= 11) {
+      // Formatar como CPF: 000.000.000-00
+      return limitedNumbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    } else {
+      // Formatar como CNPJ: 00.000.000/0000-00
+      return limitedNumbers.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
@@ -110,6 +127,11 @@ export default function CreateContract() {
     // Aplicar formatação específica para telefone
     if (name === 'client_phone') {
       processedValue = formatPhoneNumber(value);
+    }
+    
+    // Aplicar formatação específica para CPF/CNPJ
+    if (name === 'client_document') {
+      processedValue = formatDocument(value);
     }
     
     setFormData(prev => ({
@@ -152,10 +174,14 @@ export default function CreateContract() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Função para gerar preview do contrato em PDF (não utilizada atualmente)
   const handlePreviewContract = () => {
     if (!validateForm()) return;
     generateContractPDF(formData);
   };
+  
+  // Evitar warning de função não utilizada
+  void handlePreviewContract;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -294,7 +320,7 @@ export default function CreateContract() {
                   value={formData.client_document}
                   onChange={handleInputChange}
                   className={`w-full px-4 py-3 bg-kings-bg-tertiary border ${errors.client_document ? 'border-red-500' : 'border-kings-border'} rounded-lg focus:ring-2 focus:ring-kings-primary focus:border-transparent text-kings-text-primary placeholder-kings-text-subtle`}
-                  placeholder="Ex: 12345678901"
+                  placeholder="Ex: 123.456.789-01 ou 12.345.678/0001-90"
                 />
                 {errors.client_document && <p className="mt-1 text-sm text-red-400">{errors.client_document}</p>}
               </div>
@@ -368,7 +394,7 @@ export default function CreateContract() {
                   name="contract_value"
                   value={formData.contract_value || ''}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 bg-kings-bg-tertiary border ${errors.contract_value ? 'border-red-500' : 'border-kings-border'} rounded-lg focus:ring-2 focus:ring-kings-primary focus:border-transparent text-kings-text-primary placeholder-kings-text-subtle`}
+                  className={`w-full px-4 py-3 bg-kings-bg-tertiary border ${errors.contract_value ? 'border-red-500' : 'border-kings-border'} rounded-lg focus:ring-2 focus:ring-kings-primary focus:border-transparent text-kings-text-primary placeholder-kings-text-subtle [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                   placeholder="0.00"
                 />
                 {errors.contract_value && <p className="mt-1 text-sm text-red-400">{errors.contract_value}</p>}

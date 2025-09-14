@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { Crown, User, LogOut, Clock, CheckCircle, DollarSign, Plus, FileText, Download, MoreVertical, Edit, Trash2, Link, Copy, CheckCircle2, X, Search } from 'lucide-react';
+import DropdownMenu from '../components/DropdownMenu';
+import Notification, { NotificationType } from '../components/Notification';
 
 interface Contract {
   id: number;
@@ -27,6 +29,22 @@ export default function Dashboard() {
   const [contractToDelete, setContractToDelete] = useState<Contract | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'signed' | 'pending'>('all');
+  
+  // Referência para o botão atual
+  const currentButtonRef = useRef<HTMLButtonElement>(null);
+  
+  // Estados para notificações
+  const [notification, setNotification] = useState<{
+    isVisible: boolean;
+    type: NotificationType;
+    title: string;
+    message: string;
+  }>({
+    isVisible: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
 
   useEffect(() => {
     // Verificar se o usuário está logado
@@ -87,32 +105,28 @@ export default function Dashboard() {
     }
   }, [isPending, user]);
 
+  const showNotificationMessage = (type: NotificationType, title: string, message: string) => {
+    setNotification({
+      isVisible: true,
+      type,
+      title,
+      message
+    });
+  };
+
+  const hideNotification = () => {
+    setNotification(prev => ({ ...prev, isVisible: false }));
+  };
+
   // Verificar se o usuário retornou da criação de contrato
   useEffect(() => {
     if (location.state?.contractCreated) {
-      setShowNotification(true);
-      // Auto-hide notification after 5 seconds
-      const timer = setTimeout(() => {
-        setShowNotification(false);
-      }, 5000);
-      return () => clearTimeout(timer);
+      showNotificationMessage('success', 'Contrato criado!', 'Link copiado automaticamente para a área de transferência');
+      
+      // Limpar o estado da navegação para evitar que a notificação apareça novamente
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [location.state]);
-
-  // Fechar menu quando clicar fora
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.dropdown-menu')) {
-        setOpenMenuId(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   const handleLogout = async () => {
     try {
@@ -232,13 +246,13 @@ export default function Dashboard() {
       const link = `${window.location.origin}/sign/${contract.signature_link_token}`;
       try {
         await navigator.clipboard.writeText(link);
-        alert('Link copiado para a área de transferência!');
+        showNotificationMessage('success', 'Link copiado!', 'Link copiado automaticamente para a área de transferência');
       } catch (error) {
         console.error('Erro ao copiar link:', error);
-        alert('Erro ao copiar link');
+        showNotificationMessage('error', 'Erro ao copiar', 'Não foi possível copiar o link para a área de transferência');
       }
     } else {
-      alert('Este contrato não possui link de assinatura');
+      showNotificationMessage('error', 'Link não disponível', 'Este contrato não possui link de assinatura');
     }
     setOpenMenuId(null);
   };
@@ -258,25 +272,13 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-kings-bg-primary text-kings-text-primary font-space">
       {/* Notification */}
-      {showNotification && (
-        <div className="fixed top-4 right-4 z-50 bg-green-500/90 backdrop-blur-sm border border-green-400/30 rounded-lg p-4 shadow-lg max-w-sm">
-          <div className="flex items-center space-x-3">
-            <div className="bg-green-400/20 p-2 rounded-lg">
-              <CheckCircle2 className="h-5 w-5 text-green-400" />
-            </div>
-            <div className="flex-1">
-              <h4 className="font-semibold text-white">Contrato criado!</h4>
-              <p className="text-sm text-green-100">Link copiado automaticamente para a área de transferência</p>
-            </div>
-            <button
-              onClick={() => setShowNotification(false)}
-              className="text-green-200 hover:text-white transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
+      <Notification
+        isVisible={notification.isVisible}
+        onClose={hideNotification}
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+      />
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && contractToDelete && (
@@ -561,8 +563,9 @@ export default function Dashboard() {
                         {formatDate(contract.created_at)}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="relative dropdown-menu">
+                        <div className="relative">
                           <button
+                            ref={currentButtonRef}
                             onClick={() => handleMenuToggle(contract.id)}
                             className="text-kings-text-muted hover:text-kings-text-primary transition-colors duration-200 p-1 rounded-lg hover:bg-kings-bg-tertiary/50"
                             title="Mais ações"
@@ -570,50 +573,52 @@ export default function Dashboard() {
                             <MoreVertical className="h-4 w-4" />
                           </button>
                           
-                          {openMenuId === contract.id && (
-                            <div className="absolute right-0 top-8 bg-kings-bg-secondary border border-kings-border rounded-lg shadow-lg z-10 min-w-[160px]">
-                              <div className="py-1">
-                                <button
-                                  onClick={() => handleEditContract(contract)}
-                                  className="w-full px-4 py-2 text-left text-sm text-kings-text-primary hover:bg-kings-bg-tertiary/50 flex items-center space-x-2"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                  <span>Editar</span>
-                                </button>
-                                
-                                <button
-                                  onClick={() => handleCopyLink(contract)}
-                                  className="w-full px-4 py-2 text-left text-sm text-kings-text-primary hover:bg-kings-bg-tertiary/50 flex items-center space-x-2"
-                                >
-                                  <Copy className="h-4 w-4" />
-                                  <span>Copiar Link</span>
-                                </button>
-                                
-                                <button
-                                  onClick={() => handleDownloadPDF(contract)}
-                                  disabled={contract.status !== 'signed'}
-                                  className={`w-full px-4 py-2 text-left text-sm flex items-center space-x-2 ${
-                                    contract.status === 'signed'
-                                      ? 'text-kings-text-primary hover:bg-kings-bg-tertiary/50'
-                                      : 'text-kings-text-muted cursor-not-allowed opacity-50'
-                                  }`}
-                                >
-                                  <Download className="h-4 w-4" />
-                                  <span>Download PDF</span>
-                                </button>
-                                
-                                <div className="border-t border-kings-border my-1"></div>
-                                
-                                <button
-                                  onClick={() => handleDeleteContract(contract)}
-                                  className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center space-x-2"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  <span>Excluir</span>
-                                </button>
-                              </div>
+                          <DropdownMenu
+                            isOpen={openMenuId === contract.id}
+                            onClose={() => setOpenMenuId(null)}
+                            triggerRef={currentButtonRef}
+                          >
+                            <div className="py-1">
+                              <button
+                                onClick={() => handleEditContract(contract)}
+                                className="w-full px-4 py-2 text-left text-sm text-kings-text-primary hover:bg-kings-bg-tertiary/50 flex items-center space-x-2"
+                              >
+                                <Edit className="h-4 w-4" />
+                                <span>Editar</span>
+                              </button>
+                              
+                              <button
+                                onClick={() => handleCopyLink(contract)}
+                                className="w-full px-4 py-2 text-left text-sm text-kings-text-primary hover:bg-kings-bg-tertiary/50 flex items-center space-x-2"
+                              >
+                                <Copy className="h-4 w-4" />
+                                <span>Copiar Link</span>
+                              </button>
+                              
+                              <button
+                                onClick={() => handleDownloadPDF(contract)}
+                                disabled={contract.status !== 'signed'}
+                                className={`w-full px-4 py-2 text-left text-sm flex items-center space-x-2 ${
+                                  contract.status === 'signed'
+                                    ? 'text-kings-text-primary hover:bg-kings-bg-tertiary/50'
+                                    : 'text-kings-text-muted cursor-not-allowed opacity-50'
+                                }`}
+                              >
+                                <Download className="h-4 w-4" />
+                                <span>Download PDF</span>
+                              </button>
+                              
+                              <div className="border-t border-kings-border my-1"></div>
+                              
+                              <button
+                                onClick={() => handleDeleteContract(contract)}
+                                className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center space-x-2"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                <span>Excluir</span>
+                              </button>
                             </div>
-                          )}
+                          </DropdownMenu>
                         </div>
                       </td>
                     </tr>
