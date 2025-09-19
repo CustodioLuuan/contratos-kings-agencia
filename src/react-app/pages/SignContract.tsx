@@ -451,13 +451,20 @@ export default function SignContract() {
 
       // Assinatura da empresa
       try {
+        console.log('Tentando carregar logo da Kings Agência...');
         // Carregar logo da Kings Agência
         const logoImg = new Image();
         logoImg.crossOrigin = 'anonymous';
         
         await new Promise((resolve, reject) => {
-          logoImg.onload = resolve;
-          logoImg.onerror = reject;
+          logoImg.onload = () => {
+            console.log('Logo carregado com sucesso!');
+            resolve(logoImg);
+          };
+          logoImg.onerror = (error) => {
+            console.error('Erro ao carregar logo:', error);
+            reject(error);
+          };
           logoImg.src = '/kings-logo.png';
         });
         
@@ -466,8 +473,10 @@ export default function SignContract() {
         const logoHeight = 20; // Altura do logo
         const logoX = (pageWidth - logoWidth) / 2; // Centralizar
         
+        console.log('Adicionando logo ao PDF...');
         pdf.addImage(logoImg, 'PNG', logoX, yPosition - 10, logoWidth, logoHeight);
         yPosition += 15;
+        console.log('Logo adicionado ao PDF com sucesso!');
       } catch (error) {
         console.error('Erro ao carregar logo:', error);
         // Fallback: mostrar apenas texto se o logo não carregar
