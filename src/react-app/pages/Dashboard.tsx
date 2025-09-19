@@ -13,6 +13,8 @@ interface Contract {
   company_name?: string;
   contract_value: number;
   payment_date: string;
+  contract_type?: 'service' | 'permuta';
+  partner_services?: string;
   status: 'pending' | 'signed';
   signed_at?: string;
   created_at: string;
@@ -31,6 +33,7 @@ export default function Dashboard() {
   const [contractToDelete, setContractToDelete] = useState<Contract | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'signed' | 'pending'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'service' | 'permuta'>('all');
   
   // Referência para o botão atual
   const currentButtonRef = useRef<HTMLButtonElement>(null);
@@ -166,10 +169,15 @@ export default function Dashboard() {
     );
   }
 
-  // Filtrar contratos baseado na pesquisa e status
+  // Filtrar contratos baseado na pesquisa, status e tipo
   const filteredContracts = contracts.filter(contract => {
     // Filtro por status
     if (statusFilter !== 'all' && contract.status !== statusFilter) {
+      return false;
+    }
+    
+    // Filtro por tipo
+    if (typeFilter !== 'all' && contract.contract_type !== typeFilter) {
       return false;
     }
     
@@ -476,21 +484,57 @@ export default function Dashboard() {
                 Assinados
               </button>
             </div>
+
+            {/* Type Filter */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setTypeFilter('all')}
+                className={`px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+                  typeFilter === 'all'
+                    ? 'bg-kings-primary text-kings-bg-primary'
+                    : 'bg-kings-bg-tertiary text-kings-text-secondary hover:bg-kings-bg-tertiary/70 border border-kings-border'
+                }`}
+              >
+                Todos os Tipos
+              </button>
+              <button
+                onClick={() => setTypeFilter('service')}
+                className={`px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+                  typeFilter === 'service'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-kings-bg-tertiary text-kings-text-secondary hover:bg-kings-bg-tertiary/70 border border-kings-border'
+                }`}
+              >
+                Prestação
+              </button>
+              <button
+                onClick={() => setTypeFilter('permuta')}
+                className={`px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+                  typeFilter === 'permuta'
+                    ? 'bg-purple-500 text-white'
+                    : 'bg-kings-bg-tertiary text-kings-text-secondary hover:bg-kings-bg-tertiary/70 border border-kings-border'
+                }`}
+              >
+                Permuta
+              </button>
+            </div>
           </div>
 
           {/* Results Info */}
-          {(searchTerm || statusFilter !== 'all') && (
+          {(searchTerm || statusFilter !== 'all' || typeFilter !== 'all') && (
             <div className="mt-3 flex items-center gap-4 text-sm text-kings-text-muted">
               <span>
                 {filteredContracts.length} contrato(s) encontrado(s)
                 {searchTerm && ` para "${searchTerm}"`}
                 {statusFilter !== 'all' && ` com status "${statusFilter === 'pending' ? 'Pendente' : 'Assinado'}"`}
+                {typeFilter !== 'all' && ` do tipo "${typeFilter === 'permuta' ? 'Permuta' : 'Prestação'}"`}
               </span>
-              {(searchTerm || statusFilter !== 'all') && (
+              {(searchTerm || statusFilter !== 'all' || typeFilter !== 'all') && (
                 <button
                   onClick={() => {
                     setSearchTerm('');
                     setStatusFilter('all');
+                    setTypeFilter('all');
                   }}
                   className="text-kings-primary hover:text-kings-primary-dark transition-colors font-medium"
                 >
@@ -511,15 +555,15 @@ export default function Dashboard() {
             <div className="text-center py-12">
               <FileText className="h-12 w-12 text-kings-text-muted mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-kings-text-primary mb-2">
-                {searchTerm || statusFilter !== 'all' ? 'Nenhum contrato encontrado' : 'Nenhum contrato encontrado'}
+                {searchTerm || statusFilter !== 'all' || typeFilter !== 'all' ? 'Nenhum contrato encontrado' : 'Nenhum contrato encontrado'}
               </h3>
               <p className="text-kings-text-muted mb-6">
-                {searchTerm || statusFilter !== 'all' 
+                {searchTerm || statusFilter !== 'all' || typeFilter !== 'all'
                   ? `Nenhum contrato encontrado com os filtros aplicados`
                   : 'Comece criando seu primeiro contrato'
                 }
               </p>
-              {!(searchTerm || statusFilter !== 'all') && (
+              {!(searchTerm || statusFilter !== 'all' || typeFilter !== 'all') && (
                 <button
                   onClick={() => navigate('/create-contract')}
                   className="bg-kings-primary hover:bg-kings-primary-dark text-kings-bg-primary px-6 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105"
@@ -534,6 +578,7 @@ export default function Dashboard() {
                 <thead className="bg-kings-bg-tertiary/50">
                   <tr>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-kings-text-primary">Cliente</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-kings-text-primary">Tipo</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-kings-text-primary">Valor</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-kings-text-primary">Data de Pagamento</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-kings-text-primary">Status</th>
@@ -550,8 +595,17 @@ export default function Dashboard() {
                           <div className="text-sm text-kings-text-muted">{contract.client_document}</div>
                         </div>
                       </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                          contract.contract_type === 'permuta'
+                            ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                            : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                        }`}>
+                          {contract.contract_type === 'permuta' ? 'Permuta' : 'Prestação'}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 text-kings-text-primary font-medium">
-                        {formatCurrency(contract.contract_value)}
+                        {contract.contract_type === 'permuta' ? 'Troca de Serviços' : formatCurrency(contract.contract_value)}
                       </td>
                       <td className="px-6 py-4 text-kings-text-primary">
                         {formatDate(contract.payment_date)}
