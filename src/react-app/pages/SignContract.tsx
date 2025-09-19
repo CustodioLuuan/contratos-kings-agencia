@@ -69,6 +69,9 @@ export default function SignContract() {
         const response = await fetch(`/api/contracts/get/${token}`);
         if (response.ok) {
           const data = await response.json();
+          console.log('🔍 [DEBUG] Contrato carregado da API:', data);
+          console.log('🔍 [DEBUG] contract_type:', data.contract_type);
+          console.log('🔍 [DEBUG] partner_services:', data.partner_services);
           setContract(data);
           if (data.status === 'signed') {
             setSigned(true);
@@ -656,7 +659,11 @@ export default function SignContract() {
 
   // Função auxiliar para verificar se é contrato de permuta
   const isPermutaContract = () => {
-    return String(contract?.contract_type || '').trim().toLowerCase() === 'permuta';
+    const contractType = String(contract?.contract_type || '').trim().toLowerCase();
+    console.log('🔍 [DEBUG] contract_type original:', contract?.contract_type);
+    console.log('🔍 [DEBUG] contract_type processado:', contractType);
+    console.log('🔍 [DEBUG] É permuta?', contractType === 'permuta');
+    return contractType === 'permuta';
   };
 
   if (loading) {
