@@ -105,6 +105,9 @@ export default function SignContract() {
       // Detectar se é desktop (não é mobile)
       const isDesktop = !('ontouchstart' in window) && window.innerWidth > 768;
       
+      // Detectar se é mobile em tela cheia
+      const isMobileFullscreen = isMobile && isFullscreen;
+      
       if (isDesktop) {
         // Configuração para DESKTOP com devicePixelRatio
         const dpr = window.devicePixelRatio || 1;
@@ -113,8 +116,13 @@ export default function SignContract() {
         ctx.scale(dpr, dpr);
         canvas.style.width = rect.width + 'px';
         canvas.style.height = rect.height + 'px';
+      } else if (isMobileFullscreen) {
+        // Configuração ESPECÍFICA para MOBILE em tela cheia
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        // Sem devicePixelRatio para mobile em tela cheia
       } else {
-        // Configuração SIMPLES para MOBILE
+        // Configuração SIMPLES para MOBILE normal
         canvas.width = rect.width;
         canvas.height = rect.height;
       }
@@ -163,14 +171,20 @@ export default function SignContract() {
     // Detectar se é desktop
     const isDesktop = !('ontouchstart' in window) && window.innerWidth > 768;
     
+    // Detectar se é mobile em tela cheia
+    const isMobileFullscreen = isMobile && isFullscreen;
+    
     if (isDesktop) {
       // Aplicar escala do devicePixelRatio apenas no DESKTOP
       const dpr = window.devicePixelRatio || 1;
       const scaledX = x * dpr;
       const scaledY = y * dpr;
       return [scaledX, scaledY];
+    } else if (isMobileFullscreen) {
+      // Coordenadas DIRETAS para MOBILE em tela cheia
+      return [x, y];
     } else {
-      // Coordenadas DIRETAS para MOBILE
+      // Coordenadas DIRETAS para MOBILE normal
       return [x, y];
     }
   };
