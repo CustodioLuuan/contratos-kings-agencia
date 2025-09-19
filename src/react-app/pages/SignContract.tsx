@@ -1036,39 +1036,31 @@ export default function SignContract() {
           <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-white' : 'bg-kings-bg-secondary/50 backdrop-blur-sm border border-kings-border rounded-lg p-8'}`}>
             {isFullscreen ? (
               // Layout de tela cheia para mobile
-              <div className="h-full flex flex-col">
-                {/* Botões no topo em horizontal */}
-                <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
-                  <div className="flex items-center space-x-3">
-                    <div className="bg-kings-primary/20 border border-kings-primary/30 p-2 rounded-lg">
-                      <PenTool className="h-5 w-5 text-kings-primary" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-800">Assinatura Digital</h3>
-                  </div>
+              <div className="h-full flex">
+                {/* Botões na lateral esquerda */}
+                <div className="flex flex-col items-center justify-start p-4 bg-white border-r border-gray-200 space-y-3">
+                  <button
+                    onClick={clearSignature}
+                    className="px-4 py-3 bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 rounded-lg font-medium transition-colors text-sm w-full"
+                  >
+                    Limpar
+                  </button>
                   
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={clearSignature}
-                      className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 rounded-lg font-medium transition-colors text-sm"
-                    >
-                      Limpar
-                    </button>
-                    
-                    <button
-                      onClick={toggleFullscreen}
-                      className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 rounded-lg font-medium transition-colors text-sm flex items-center space-x-1"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      <span>Sair</span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={toggleFullscreen}
+                    className="px-4 py-3 bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 rounded-lg font-medium transition-colors text-sm w-full flex items-center justify-center space-x-1"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span>Sair</span>
+                  </button>
                 </div>
 
                 {/* Canvas ocupando o resto da tela */}
-                <div className="flex-1 p-4">
-                  <div className="h-full border-2 border-dashed border-gray-300 rounded-lg p-2">
+                <div className="flex-1 flex flex-col">
+                  <div className="flex-1 p-4">
+                    <div className="h-full border-2 border-dashed border-gray-300 rounded-lg p-2">
                     <canvas
                       ref={canvasRef}
                       className="border border-gray-300 rounded bg-white touch-none w-full h-full"
@@ -1116,25 +1108,26 @@ export default function SignContract() {
                   </div>
                 </div>
 
-                {/* Botão de assinar na parte inferior */}
-                <div className="p-4 bg-white border-t border-gray-200">
-                  <button
-                    onClick={handleSign}
-                    disabled={signing}
-                    className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-kings-primary hover:bg-kings-primary-dark text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {signing ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        <span>Assinando...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Download className="h-4 w-4" />
-                        <span>Assinar e Finalizar</span>
-                      </>
-                    )}
-                  </button>
+                  {/* Botão de assinar na parte inferior direita */}
+                  <div className="p-4 bg-white border-t border-gray-200">
+                    <button
+                      onClick={handleSign}
+                      disabled={signing}
+                      className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-kings-primary hover:bg-kings-primary-dark text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {signing ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span>Assinando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4" />
+                          <span>Assinar e Finalizar</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
