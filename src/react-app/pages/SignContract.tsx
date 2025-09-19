@@ -91,47 +91,38 @@ export default function SignContract() {
 
   useEffect(() => {
     const initCanvas = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
 
-      // Configuração do canvas para alta resolução
-      const ratio = window.devicePixelRatio || 1;
+      // Configuração simples do canvas
       const rect = canvas.getBoundingClientRect();
       
-      // Define o tamanho real do canvas
-      canvas.width = rect.width * ratio;
-      canvas.height = rect.height * ratio;
-      
-      // Escala o contexto para corresponder ao devicePixelRatio
-      ctx.scale(ratio, ratio);
-      
-      // Ajusta o tamanho CSS do canvas
-      canvas.style.width = rect.width + 'px';
-      canvas.style.height = rect.height + 'px';
+      // Define o tamanho do canvas baseado no CSS
+      canvas.width = rect.width;
+      canvas.height = rect.height;
 
       // Set drawing style for smooth lines
       ctx.lineWidth = 3.0;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#000000';
-    
-    // Configurações específicas para mobile
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#000000';
+      
+      // Configurações específicas para mobile
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
 
-    // Fill with white background
-    ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, rect.width, rect.height);
+      // Fill with white background
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       
       console.log('Canvas initialized:', {
         width: canvas.width,
         height: canvas.height,
         offsetWidth: canvas.offsetWidth,
         offsetHeight: canvas.offsetHeight,
-        ratio,
         rect: rect
       });
     };
@@ -158,10 +149,22 @@ export default function SignContract() {
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     
-    // Calcula posição relativa ao canvas considerando o devicePixelRatio
-    const ratio = window.devicePixelRatio || 1;
-    const x = (clientX - rect.left) * ratio;
-    const y = (clientY - rect.top) * ratio;
+    // Calcula posição relativa ao canvas
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    
+    console.log('Position calculation:', {
+      clientX,
+      clientY,
+      rectLeft: rect.left,
+      rectTop: rect.top,
+      calculatedX: x,
+      calculatedY: y,
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height,
+      canvasOffsetWidth: canvas.offsetWidth,
+      canvasOffsetHeight: canvas.offsetHeight
+    });
     
     return [x, y];
   };
