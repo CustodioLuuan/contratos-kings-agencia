@@ -97,12 +97,20 @@ export default function SignContract() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // Configuração simples do canvas
+      // Obter dimensões do canvas no DOM
       const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
       
-      // Define o tamanho do canvas igual ao tamanho visual
-      canvas.width = rect.width;
-      canvas.height = rect.height;
+      // Configurar tamanho do canvas considerando devicePixelRatio
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      
+      // Escalar o contexto para o devicePixelRatio
+      ctx.scale(dpr, dpr);
+      
+      // Ajustar tamanho visual do canvas
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = rect.height + 'px';
 
       // Set drawing style for smooth lines
       ctx.lineWidth = 3.0;
@@ -116,7 +124,7 @@ export default function SignContract() {
 
       // Fill with white background
       ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, rect.width, rect.height);
     };
 
     // Delay para garantir que o DOM esteja carregado
@@ -129,7 +137,7 @@ export default function SignContract() {
     
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleResize);
-    
+
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
@@ -141,11 +149,16 @@ export default function SignContract() {
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     
-    // Coordenadas diretas sem escala
+    // Calcular coordenadas relativas ao canvas
     const x = clientX - rect.left;
     const y = clientY - rect.top;
     
-    return [x, y];
+    // Aplicar escala do devicePixelRatio se necessário
+    const dpr = window.devicePixelRatio || 1;
+    const scaledX = x * dpr;
+    const scaledY = y * dpr;
+    
+    return [scaledX, scaledY];
   };
 
   // Filtro de suavização para reduzir tremores
@@ -198,6 +211,10 @@ export default function SignContract() {
     if (!ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Fill with white background
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Desenha todos os traços anteriores
     allStrokes.forEach(stroke => {
