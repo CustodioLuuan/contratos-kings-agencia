@@ -80,8 +80,6 @@ async function handleCreateContract(req: VercelRequest, res: VercelResponse) {
       contract_type,
       partner_services
     });
-    console.log('🔍 [CREATE CONTRACT] contract_type tipo:', typeof contract_type);
-    console.log('🔍 [CREATE CONTRACT] contract_type valor:', contract_type);
 
     // Validação básica simplificada
     if (!client_name || !client_document) {

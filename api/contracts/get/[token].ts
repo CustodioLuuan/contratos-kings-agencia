@@ -34,10 +34,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const contract = data[0];
     console.log('✅ [GET CONTRACT API] Contrato encontrado:', contract);
-    console.log('🔍 [GET CONTRACT API] Tipo do contrato:', contract.contract_type);
-    console.log('🔍 [GET CONTRACT API] Tipo do contract_type:', typeof contract.contract_type);
-    console.log('🔍 [GET CONTRACT API] Serviços do parceiro:', contract.partner_services);
-    console.log('🔍 [GET CONTRACT API] Todos os campos do contrato:', Object.keys(contract));
     return res.status(200).json(contract);
   } catch (error) {
     console.error('Erro ao buscar contrato:', error);
