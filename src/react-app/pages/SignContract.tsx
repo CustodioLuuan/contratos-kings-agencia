@@ -97,20 +97,12 @@ export default function SignContract() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // Obter dimensões reais do canvas no DOM
+      // Configuração MUITO simples - sem devicePixelRatio
       const rect = canvas.getBoundingClientRect();
       
-      // Configurar tamanho do canvas considerando devicePixelRatio para alta resolução
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      
-      // Escalar o contexto para o devicePixelRatio
-      ctx.scale(dpr, dpr);
-      
-      // Ajustar tamanho visual do canvas
-      canvas.style.width = rect.width + 'px';
-      canvas.style.height = rect.height + 'px';
+      // Tamanho do canvas igual ao tamanho visual
+      canvas.width = rect.width;
+      canvas.height = rect.height;
 
       // Set drawing style for smooth lines
       ctx.lineWidth = 3.0;
@@ -124,7 +116,7 @@ export default function SignContract() {
 
       // Fill with white background
       ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, rect.width, rect.height);
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     };
 
     // Delay para garantir que o DOM esteja carregado
@@ -149,16 +141,11 @@ export default function SignContract() {
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     
-    // Calcular coordenadas relativas ao canvas
+    // Coordenadas DIRETAS - sem escala, sem devicePixelRatio
     const x = clientX - rect.left;
     const y = clientY - rect.top;
     
-    // Aplicar escala do devicePixelRatio se necessário
-    const dpr = window.devicePixelRatio || 1;
-    const scaledX = x * dpr;
-    const scaledY = y * dpr;
-    
-    return [scaledX, scaledY];
+    return [x, y];
   };
 
   // Filtro de suavização para reduzir tremores
