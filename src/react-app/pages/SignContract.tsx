@@ -97,7 +97,7 @@ export default function SignContract() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // Configuração simples do canvas
+      // Configuração do canvas
       const rect = canvas.getBoundingClientRect();
       
       // Define o tamanho do canvas baseado no CSS
@@ -123,7 +123,11 @@ export default function SignContract() {
         height: canvas.height,
         offsetWidth: canvas.offsetWidth,
         offsetHeight: canvas.offsetHeight,
-        rect: rect
+        rect: rect,
+        computedStyle: {
+          width: window.getComputedStyle(canvas).width,
+          height: window.getComputedStyle(canvas).height
+        }
       });
     };
 
@@ -149,21 +153,26 @@ export default function SignContract() {
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     
-    // Calcula posição relativa ao canvas
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
+    // Calcula posição relativa ao canvas considerando a escala
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const x = (clientX - rect.left) * scaleX;
+    const y = (clientY - rect.top) * scaleY;
     
     console.log('Position calculation:', {
       clientX,
       clientY,
       rectLeft: rect.left,
       rectTop: rect.top,
-      calculatedX: x,
-      calculatedY: y,
+      rectWidth: rect.width,
+      rectHeight: rect.height,
       canvasWidth: canvas.width,
       canvasHeight: canvas.height,
-      canvasOffsetWidth: canvas.offsetWidth,
-      canvasOffsetHeight: canvas.offsetHeight
+      scaleX,
+      scaleY,
+      calculatedX: x,
+      calculatedY: y
     });
     
     return [x, y];
