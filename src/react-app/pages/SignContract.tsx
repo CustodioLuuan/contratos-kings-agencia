@@ -97,11 +97,11 @@ export default function SignContract() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // Obter dimensões do canvas no DOM
+      // Obter dimensões reais do canvas no DOM
       const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
       
-      // Configurar tamanho do canvas considerando devicePixelRatio
+      // Configurar tamanho do canvas considerando devicePixelRatio para alta resolução
+      const dpr = window.devicePixelRatio || 1;
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
       
@@ -137,7 +137,7 @@ export default function SignContract() {
     
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleResize);
-
+    
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
