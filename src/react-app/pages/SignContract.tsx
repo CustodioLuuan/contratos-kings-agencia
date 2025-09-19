@@ -99,9 +99,16 @@ export default function SignContract() {
 
       const rect = canvas.getBoundingClientRect();
       
+      // Debug logs para canvas initialization
+      console.log('🎨 CANVAS INIT DEBUG:');
+      console.log('  rect.width:', rect.width, 'rect.height:', rect.height);
+      console.log('  canvas.style.width:', canvas.style.width, 'canvas.style.height:', canvas.style.height);
+      
       // Configuração SIMPLES para AMBOS - desktop e mobile
       canvas.width = rect.width;
       canvas.height = rect.height;
+      
+      console.log('  canvas.width after:', canvas.width, 'canvas.height after:', canvas.height);
 
       // Set drawing style for smooth lines
       ctx.lineWidth = 3.0;
@@ -143,6 +150,16 @@ export default function SignContract() {
     // Coordenadas DIRETAS para AMBOS - desktop e mobile
     const x = clientX - rect.left;
     const y = clientY - rect.top;
+    
+    // Debug logs para desktop
+    if (!('touches' in e)) {
+      console.log('🖥️ DESKTOP DEBUG:');
+      console.log('  clientX:', clientX, 'clientY:', clientY);
+      console.log('  rect.left:', rect.left, 'rect.top:', rect.top);
+      console.log('  rect.width:', rect.width, 'rect.height:', rect.height);
+      console.log('  canvas.width:', canvas.width, 'canvas.height:', canvas.height);
+      console.log('  calculated x:', x, 'y:', y);
+    }
     
     return [x, y];
   };
