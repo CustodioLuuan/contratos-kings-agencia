@@ -97,10 +97,10 @@ export default function SignContract() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // Configuração do canvas
+      // Configuração simples do canvas
       const rect = canvas.getBoundingClientRect();
       
-      // Define o tamanho do canvas baseado no CSS
+      // Define o tamanho do canvas igual ao tamanho visual
       canvas.width = rect.width;
       canvas.height = rect.height;
 
@@ -117,18 +117,6 @@ export default function SignContract() {
       // Fill with white background
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      console.log('Canvas initialized:', {
-        width: canvas.width,
-        height: canvas.height,
-        offsetWidth: canvas.offsetWidth,
-        offsetHeight: canvas.offsetHeight,
-        rect: rect,
-        computedStyle: {
-          width: window.getComputedStyle(canvas).width,
-          height: window.getComputedStyle(canvas).height
-        }
-      });
     };
 
     // Delay para garantir que o DOM esteja carregado
@@ -153,27 +141,9 @@ export default function SignContract() {
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     
-    // Calcula posição relativa ao canvas considerando a escala
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
-    const x = (clientX - rect.left) * scaleX;
-    const y = (clientY - rect.top) * scaleY;
-    
-    console.log('Position calculation:', {
-      clientX,
-      clientY,
-      rectLeft: rect.left,
-      rectTop: rect.top,
-      rectWidth: rect.width,
-      rectHeight: rect.height,
-      canvasWidth: canvas.width,
-      canvasHeight: canvas.height,
-      scaleX,
-      scaleY,
-      calculatedX: x,
-      calculatedY: y
-    });
+    // Coordenadas diretas sem escala
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
     
     return [x, y];
   };
