@@ -20,6 +20,7 @@ interface Contract {
   signed_at?: string;
   created_at: string;
   signature_link_token?: string;
+  signature_data?: string;
 }
 
 export default function Dashboard() {
@@ -421,6 +422,54 @@ export default function Dashboard() {
     yPosition += 20;
 
     // Assinatura do cliente
+    if (contract.signature_data) {
+      try {
+        // Processar assinatura de forma síncrona
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          // Criar uma imagem temporária
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          
+          // Aguardar o carregamento da imagem
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = contract.signature_data!;
+          });
+          
+          canvas.width = img.width;
+          canvas.height = img.height;
+          
+          // Desenhar a imagem original
+          ctx.drawImage(img, 0, 0);
+          
+          // Aplicar filtro para inverter cores (preto vira branco)
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+          for (let i = 0; i < data.length; i += 4) {
+            // Inverter RGB para branco
+            data[i] = 255 - data[i];     // R
+            data[i + 1] = 255 - data[i + 1]; // G
+            data[i + 2] = 255 - data[i + 2]; // B
+            // Manter alpha
+          }
+          ctx.putImageData(imageData, 0, 0);
+          
+          // Adicionar ao PDF
+          const signatureData = canvas.toDataURL('image/png');
+          const imgWidth = 60; // Largura da assinatura
+          const imgHeight = 20; // Altura da assinatura
+          const x = (pageWidth - imgWidth) / 2; // Centralizar
+          
+          pdf.addImage(signatureData, 'PNG', x, yPosition - 15, imgWidth, imgHeight);
+        }
+      } catch (error) {
+        console.error('Erro ao processar assinatura:', error);
+      }
+    }
+    
     addText(contract.client_name, 12, true, '#FFFFFF');
     addText(partnerTitle, 10, false, '#A3A3A3');
     yPosition += 20;
