@@ -533,23 +533,23 @@ export default function SignContract() {
               img.src = clientSignature;
             });
             
-            // Detectar se foi assinado em mobile em tela cheia (horizontal)
-            const isMobileFullscreen = isMobile && isFullscreen;
-            
-            if (isMobileFullscreen) {
-              // Para mobile em tela cheia, rotacionar a assinatura
-              canvas.width = img.height; // Trocar width e height
-              canvas.height = img.width;
+              // Detectar se foi assinado em mobile em tela cheia (horizontal)
+              const isMobileFullscreen = isMobile && isFullscreen;
               
-              ctx.translate(canvas.width / 2, canvas.height / 2);
-              ctx.rotate(-Math.PI / 2); // Rotacionar -90 graus
-              ctx.drawImage(img, -img.width / 2, -img.height / 2);
-            } else {
-              // Para desktop e mobile normal, manter orientação original
-              canvas.width = img.width;
-              canvas.height = img.height;
-              ctx.drawImage(img, 0, 0);
-            }
+              if (isMobileFullscreen) {
+                // Para mobile em tela cheia, rotacionar a assinatura
+                canvas.width = img.height; // Trocar width e height
+                canvas.height = img.width;
+                
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(-Math.PI / 2); // Rotacionar -90 graus
+                ctx.drawImage(img, -img.width / 2, -img.height / 2);
+              } else {
+                // Para desktop e mobile normal, manter orientação original
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+              }
             
             // Aplicar filtro para inverter cores (preto vira branco)
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
