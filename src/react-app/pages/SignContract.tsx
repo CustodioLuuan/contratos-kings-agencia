@@ -143,23 +143,26 @@ export default function SignContract() {
   }, []);
 
   const getPosition = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, canvas: HTMLCanvasElement) => {
-    const rect = canvas.getBoundingClientRect();
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    // Para desktop, usar offsetX/offsetY que são mais diretos
+    if (!('touches' in e)) {
+      const mouseEvent = e as React.MouseEvent<HTMLCanvasElement>;
+      const x = mouseEvent.nativeEvent.offsetX;
+      const y = mouseEvent.nativeEvent.offsetY;
+      
+      console.log('🖥️ DESKTOP DEBUG (offsetX/offsetY):');
+      console.log('  offsetX:', x, 'offsetY:', y);
+      console.log('  canvas.width:', canvas.width, 'canvas.height:', canvas.height);
+      
+      return [x, y];
+    }
     
-    // Coordenadas DIRETAS para AMBOS - desktop e mobile
+    // Para mobile, usar a abordagem anterior que já funciona
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches[0].clientX;
+    const clientY = e.touches[0].clientY;
+    
     const x = clientX - rect.left;
     const y = clientY - rect.top;
-    
-    // Debug logs para desktop
-    if (!('touches' in e)) {
-      console.log('🖥️ DESKTOP DEBUG:');
-      console.log('  clientX:', clientX, 'clientY:', clientY);
-      console.log('  rect.left:', rect.left, 'rect.top:', rect.top);
-      console.log('  rect.width:', rect.width, 'rect.height:', rect.height);
-      console.log('  canvas.width:', canvas.width, 'canvas.height:', canvas.height);
-      console.log('  calculated x:', x, 'y:', y);
-    }
     
     return [x, y];
   };
