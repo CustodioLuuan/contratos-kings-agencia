@@ -450,6 +450,30 @@ export default function SignContract() {
       yPosition += 10;
 
       // Assinatura da empresa
+      try {
+        // Carregar logo da Kings Agência
+        const logoImg = new Image();
+        logoImg.crossOrigin = 'anonymous';
+        
+        await new Promise((resolve, reject) => {
+          logoImg.onload = resolve;
+          logoImg.onerror = reject;
+          logoImg.src = '/kings-logo.png';
+        });
+        
+        // Adicionar logo ao PDF
+        const logoWidth = 40; // Largura do logo
+        const logoHeight = 20; // Altura do logo
+        const logoX = (pageWidth - logoWidth) / 2; // Centralizar
+        
+        pdf.addImage(logoImg, 'PNG', logoX, yPosition - 10, logoWidth, logoHeight);
+        yPosition += 15;
+      } catch (error) {
+        console.error('Erro ao carregar logo:', error);
+        // Fallback: mostrar apenas texto se o logo não carregar
+        addText('Kings Agência', 12, true, '#FFFFFF');
+      }
+      
       addText('Kings Agência', 12, true, '#FFFFFF');
       addText('EMPRESA', 10, false, '#A3A3A3');
       yPosition += 20;
