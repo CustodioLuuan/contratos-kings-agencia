@@ -1033,22 +1033,128 @@ export default function SignContract() {
 
         {/* Signature Section */}
         {!signed && (
-          <div className={`bg-kings-bg-secondary/50 backdrop-blur-sm border border-kings-border rounded-lg p-8 ${isFullscreen ? 'fixed inset-0 z-50 rounded-none' : ''}`}>
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
-              <div className="bg-kings-primary/20 border border-kings-primary/30 p-2 rounded-lg">
-                <PenTool className="h-5 w-5 text-kings-primary" />
-              </div>
-              <h3 className="text-xl font-semibold text-kings-text-primary">Assinatura Digital</h3>
-              </div>
-              
-            </div>
+          <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-white' : 'bg-kings-bg-secondary/50 backdrop-blur-sm border border-kings-border rounded-lg p-8'}`}>
+            {isFullscreen ? (
+              // Layout de tela cheia para mobile
+              <div className="h-full flex flex-col">
+                {/* Botões no topo em horizontal */}
+                <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-kings-primary/20 border border-kings-primary/30 p-2 rounded-lg">
+                      <PenTool className="h-5 w-5 text-kings-primary" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800">Assinatura Digital</h3>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={clearSignature}
+                      className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 rounded-lg font-medium transition-colors text-sm"
+                    >
+                      Limpar
+                    </button>
+                    
+                    <button
+                      onClick={toggleFullscreen}
+                      className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 rounded-lg font-medium transition-colors text-sm flex items-center space-x-1"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span>Sair</span>
+                    </button>
+                  </div>
+                </div>
 
-            <p className="text-kings-text-muted mb-6">
-              Desenhe sua assinatura no campo abaixo para concordar com os termos do contrato:
-            </p>
+                {/* Canvas ocupando o resto da tela */}
+                <div className="flex-1 p-4">
+                  <div className="h-full border-2 border-dashed border-gray-300 rounded-lg p-2">
+                    <canvas
+                      ref={canvasRef}
+                      className="border border-gray-300 rounded bg-white touch-none w-full h-full"
+                      style={{ 
+                        height: '100%',
+                        display: 'block',
+                        margin: '0 auto',
+                        maxWidth: '100%',
+                        cursor: 'url("data:image/svg+xml;base64,PHN2ZyBjbGFzcz0idzYgaDYgdGV4dC1ncmF5LTgwMCBkYXJrOnRleHQtd2hpdGUiIGFyaWEtaGlkZGVuPSJ0cnVlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0iY3VycmVudENvbG9yIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTE1LjUxNCAzLjI5M2ExIDEgMCAwIDAtMS40MTUgMEwxMi4xNTEgNS4yNGEuOTMuOTMgMCAwIDEgLjA1Ni4wNTJsNi41IDYuNWEuOTcuOTcgMCAwIDEgLjA1Mi4wNTZMMjAuNzA3IDkuOWExIDEgMCAwIDAgMC0xLjQxNWwtNS4xOTMtNS4xOTNaTTcuMDA0IDguMjdsMy44OTItMS40NiA2LjI5MyA2LjI5My0xLjQ2IDMuODkzYTEgMSAwIDAgMS0uNjAzLjU5MWwtOS40OTQgMy4zNTVhMSAxIDAgMCAxLS45OC0uMThsNi40NTItNi40NTNhMSAxIDAgMCAwLTEuNDE0LTEuNDE0bC02LjQ1MyA2LjQ1MmExIDEgMCAwIDEtLjE4LS45OGwzLjM1NS05LjQ5NGExIDEgMCAwIDEgLjU5MS0uNjAzWiIgY2xpcC1ydWxlPSJldmVub2RkIi8+PC9zdmc+") 2 22, auto'
+                      }}
+                      onMouseDown={startDrawing}
+                      onMouseMove={draw}
+                      onMouseUp={stopDrawing}
+                      onMouseLeave={stopDrawing}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (signed) return;
+                        
+                        setIsDrawing(true);
+                        const canvas = canvasRef.current;
+                        if (!canvas) return;
 
-            <div className={`border-2 border-dashed border-kings-border rounded-lg p-2 sm:p-4 mb-6 ${isFullscreen ? 'h-full' : ''}`}>
+                        const newPoints = [getPosition(e, canvas)];
+                        setPoints(newPoints);
+                      }}
+                      onTouchMove={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!isDrawing || signed) return;
+
+                        const canvas = canvasRef.current;
+                        if (!canvas) return;
+
+                        const newPoints = [...points, getPosition(e, canvas)];
+                        setPoints(newPoints);
+                        redraw(canvas, newPoints);
+                      }}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        stopDrawing();
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Botão de assinar na parte inferior */}
+                <div className="p-4 bg-white border-t border-gray-200">
+                  <button
+                    onClick={handleSign}
+                    disabled={signing}
+                    className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-kings-primary hover:bg-kings-primary-dark text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {signing ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Assinando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        <span>Assinar e Finalizar</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              // Layout normal
+              <>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center space-x-3">
+                  <div className="bg-kings-primary/20 border border-kings-primary/30 p-2 rounded-lg">
+                    <PenTool className="h-5 w-5 text-kings-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-kings-text-primary">Assinatura Digital</h3>
+                  </div>
+                  
+                </div>
+
+                <p className="text-kings-text-muted mb-6">
+                  Desenhe sua assinatura no campo abaixo para concordar com os termos do contrato:
+                </p>
+
+                <div className="border-2 border-dashed border-kings-border rounded-lg p-2 sm:p-4 mb-6">
               <canvas
                 ref={canvasRef}
                 className={`border border-kings-border rounded bg-white touch-none w-full max-w-full`}
@@ -1095,7 +1201,7 @@ export default function SignContract() {
               />
             </div>
 
-            <div className={`flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 ${isFullscreen ? 'fixed bottom-4 left-4 right-4' : ''}`}>
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
               <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 <button
                   onClick={clearSignature}
@@ -1146,6 +1252,8 @@ export default function SignContract() {
                 )}
               </button>
             </div>
+              </>
+            )}
           </div>
         )}
 
