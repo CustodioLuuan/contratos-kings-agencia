@@ -1,3 +1,4 @@
+// VERSÃO ATUALIZADA - 2024-12-19 15:30 - CONTRATO PERMUTA FIX
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router';
 import { Crown, FileText, PenTool, Download, CheckCircle } from 'lucide-react';
@@ -65,7 +66,7 @@ export default function SignContract() {
   useEffect(() => {
     const fetchContract = async () => {
       try {
-        const response = await fetch(`/api/contracts/${token}`);
+        const response = await fetch(`/api/contracts/get/${token}`);
         if (response.ok) {
           const data = await response.json();
           setContract(data);
@@ -351,64 +352,88 @@ export default function SignContract() {
       };
 
       // Título principal
-      addText('CONTRATO DE PRESTAÇÃO DE SERVIÇOS', 18, true, '#FFFFFF', true);
+      const contractTitle = isPermutaContract() ? 'CONTRATO DE PERMUTA DE SERVIÇOS' : 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS';
+      addText(contractTitle, 18, true, '#FFFFFF', true);
       addText('KINGS AGÊNCIA', 16, true, '#DBFB36', true);
       yPosition += 10;
 
       // Seção PARTES
       addText('PARTES', 14, true, '#DBFB36');
-      addText(`De um lado, KINGS AGÊNCIA, inscrito no CPF nº 145.998.009-37, prestando serviços de forma online, doravante denominado EMPRESA;`, 12, false, '#FFFFFF');
-      addText(`E de outro, ${contract.client_name}, inscrito no CPF nº ${contract.client_document.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}, doravante denominado CLIENTE.`, 12, false, '#FFFFFF');
+      addText(`De um lado, KINGS AGÊNCIA, inscrita no CPF nº 145.998.009-37, prestando serviços de forma online, doravante denominada EMPRESA;`, 12, false, '#FFFFFF');
+      const partnerTitle = isPermutaContract() ? 'PARCEIRO' : 'CLIENTE';
+      addText(`E de outro, ${contract.client_name}, inscrito no CPF nº ${contract.client_document.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}, doravante denominado ${partnerTitle}.`, 12, false, '#FFFFFF');
       yPosition += 10;
 
       // Título do contrato
-      addText('CONTRATO DE PRESTAÇÃO DE SERVIÇOS', 16, true, '#DBFB36', true);
+      addText(contractTitle, 16, true, '#DBFB36', true);
       yPosition += 10;
 
       // CLÁUSULA 1 - OBJETO
       addText('CLÁUSULA 1 – OBJETO', 14, true, '#DBFB36');
-      addText('1.1 O presente contrato tem por objeto a prestação de serviços pela EMPRESA ao CLIENTE, podendo incluir:', 12, false, '#FFFFFF');
-      addText('• Criação, desenvolvimento e manutenção de sites;', 12, false, '#FFFFFF');
-      addText('• Hospedagem e suporte técnico;', 12, false, '#FFFFFF');
-      addText('• Design e soluções digitais personalizadas.', 12, false, '#FFFFFF');
-      addText('1.2 O site será desenvolvido de acordo com a escolha e informações fornecidas pelo CLIENTE no início do projeto, garantindo que o valor contratado cobre a entrega conforme esse combinado.', 12, false, '#FFFFFF');
-      addText('1.3 As alterações ou modificações visuais nos serviços prestados seguirão as condições de cada plano contratado:', 12, false, '#FFFFFF');
-      addText('• Plano Básico: qualquer alteração visual solicitada será cobrada à parte, conforme tabela vigente da EMPRESA;', 12, false, '#FFFFFF');
-      addText('• Plano Avançado: inclui até 1 (uma) alteração visual gratuita por mês. Alterações adicionais serão cobradas à parte;', 12, false, '#FFFFFF');
-      addText('• Plano Premium: inclui até 3 (três) alterações visuais gratuitas por mês. Alterações adicionais serão cobradas à parte.', 12, false, '#FFFFFF');
+      if (isPermutaContract()) {
+        addText('1.1 O presente contrato tem por objeto a troca de serviços entre as partes, em regime de permuta, consistindo em:', 12, false, '#FFFFFF');
+        addText('A EMPRESA fornecerá ao PARCEIRO serviços de criação, desenvolvimento e manutenção de sites, hospedagem, suporte técnico, design e soluções digitais personalizadas.', 12, false, '#FFFFFF');
+        addText(`O PARCEIRO, em contrapartida, fornecerá à EMPRESA os seguintes serviços/bens: ${contract.partner_services || '[especificar aqui o que será oferecido pelo PARCEIRO – ex: fotografia, marketing, produtos, etc.]'}.`, 12, false, '#FFFFFF');
+        addText('1.2 Cada parte declara estar ciente do valor estimado dos serviços ofertados pela outra, de modo que a permuta é considerada justa e equivalente.', 12, false, '#FFFFFF');
+        addText('1.3 Eventuais alterações ou acréscimos de serviços por qualquer das partes deverão ser objeto de aditivo contratual.', 12, false, '#FFFFFF');
+      } else {
+        addText('1.1 O presente contrato tem por objeto a prestação de serviços pela EMPRESA ao CLIENTE, podendo incluir:', 12, false, '#FFFFFF');
+        addText('• Criação, desenvolvimento e manutenção de sites;', 12, false, '#FFFFFF');
+        addText('• Hospedagem e suporte técnico;', 12, false, '#FFFFFF');
+        addText('• Design e soluções digitais personalizadas.', 12, false, '#FFFFFF');
+        addText('1.2 O site será desenvolvido de acordo com a escolha e informações fornecidas pelo CLIENTE no início do projeto, garantindo que o valor contratado cobre a entrega conforme esse combinado.', 12, false, '#FFFFFF');
+        addText('1.3 As alterações ou modificações visuais nos serviços prestados seguirão as condições de cada plano contratado:', 12, false, '#FFFFFF');
+        addText('• Plano Básico: qualquer alteração visual solicitada será cobrada à parte, conforme tabela vigente da EMPRESA;', 12, false, '#FFFFFF');
+        addText('• Plano Avançado: inclui até 1 (uma) alteração visual gratuita por mês. Alterações adicionais serão cobradas à parte;', 12, false, '#FFFFFF');
+        addText('• Plano Premium: inclui até 3 (três) alterações visuais gratuitas por mês. Alterações adicionais serão cobradas à parte.', 12, false, '#FFFFFF');
+      }
       yPosition += 10;
 
       // CLÁUSULA 2 - PRAZO
       addText('CLÁUSULA 2 – PRAZO', 14, true, '#DBFB36');
-      addText('2.1 O prazo para entrega dos serviços será definido em cronograma acordado entre as partes.', 12, false, '#FFFFFF');
+      addText('2.1 O prazo de execução dos serviços será definido em cronograma acordado entre as partes, respeitando as condições previamente estabelecidas.', 12, false, '#FFFFFF');
       yPosition += 10;
 
-      // CLÁUSULA 3 - VALOR E PAGAMENTO
-      addText('CLÁUSULA 3 – VALOR E PAGAMENTO', 14, true, '#DBFB36');
-      addText(`3.1 O CLIENTE pagará à EMPRESA o valor total de R$ ${contract.contract_value}, que deverá ser pago inteiramente no momento da finalização e entrega do site.`, 12, false, '#FFFFFF');
-      addText(`3.2 Em caso de mensalidade (hospedagem/manutenção), o pagamento ocorrerá todo dia ${contract.payment_date.split('-')[2]} de cada mês.`, 12, false, '#FFFFFF');
-      addText('3.3 Os valores poderão ser reajustados ou alterados, mediante aviso prévio de 30 (trinta) dias ao CLIENTE.', 12, false, '#FFFFFF');
-      addText('3.4 O valor do contrato não será reajustado continuamente; somente poderá haver cobrança adicional em caso de alterações solicitadas pelo CLIENTE, conforme Cláusula 1.3.', 12, false, '#FFFFFF');
+      // CLÁUSULA 3 - VALOR E CONDIÇÕES
+      const clause3Title = isPermutaContract() ? 'CLÁUSULA 3 – VALOR E CONDIÇÕES DA PERMUTA' : 'CLÁUSULA 3 – VALOR E PAGAMENTO';
+      addText(clause3Title, 14, true, '#DBFB36');
+      if (isPermutaContract()) {
+        addText('3.1 Não haverá pagamento em dinheiro entre as partes, salvo se houver desequilíbrio no valor da permuta.', 12, false, '#FFFFFF');
+        addText('3.2 Caso uma das partes solicite serviços adicionais não previstos na troca, estes poderão ser cobrados financeiramente ou compensados em novo ajuste de permuta.', 12, false, '#FFFFFF');
+        addText('3.3 O valor da permuta poderá ser revisado mediante acordo mútuo e por escrito entre as partes.', 12, false, '#FFFFFF');
+      } else {
+        addText(`3.1 O CLIENTE pagará à EMPRESA o valor total de R$ ${contract.contract_value}, que deverá ser pago inteiramente no momento da finalização e entrega do site.`, 12, false, '#FFFFFF');
+        addText(`3.2 Em caso de mensalidade (hospedagem/manutenção), o pagamento ocorrerá todo dia ${contract.payment_date.split('-')[2]} de cada mês.`, 12, false, '#FFFFFF');
+        addText('3.3 Os valores poderão ser reajustados ou alterados, mediante aviso prévio de 30 (trinta) dias ao CLIENTE.', 12, false, '#FFFFFF');
+        addText('3.4 O valor do contrato não será reajustado continuamente; somente poderá haver cobrança adicional em caso de alterações solicitadas pelo CLIENTE, conforme Cláusula 1.3.', 12, false, '#FFFFFF');
+      }
       yPosition += 10;
 
       // CLÁUSULA 4 - OBRIGAÇÕES DA EMPRESA
       addText('CLÁUSULA 4 – OBRIGAÇÕES DA EMPRESA', 14, true, '#DBFB36');
       addText('• Entregar os serviços contratados dentro do prazo estabelecido;', 12, false, '#FFFFFF');
-      addText('• Garantir a confidencialidade das informações do CLIENTE;', 12, false, '#FFFFFF');
+      addText('• Garantir a confidencialidade das informações recebidas;', 12, false, '#FFFFFF');
       addText('• Prestar suporte técnico conforme acordado.', 12, false, '#FFFFFF');
       yPosition += 10;
 
-      // CLÁUSULA 5 - OBRIGAÇÕES DO CLIENTE
-      addText('CLÁUSULA 5 – OBRIGAÇÕES DO CLIENTE', 14, true, '#DBFB36');
-      addText('• Fornecer informações, conteúdos e materiais necessários para execução dos serviços;', 12, false, '#FFFFFF');
-      addText('• Efetuar os pagamentos nas datas ajustadas;', 12, false, '#FFFFFF');
-      addText('• Respeitar os prazos de aprovação e feedback.', 12, false, '#FFFFFF');
+      // CLÁUSULA 5 - OBRIGAÇÕES DO PARCEIRO/CLIENTE
+      const clause5Title = isPermutaContract() ? 'CLÁUSULA 5 – OBRIGAÇÕES DO PARCEIRO' : 'CLÁUSULA 5 – OBRIGAÇÕES DO CLIENTE';
+      addText(clause5Title, 14, true, '#DBFB36');
+      if (isPermutaContract()) {
+        addText('• Entregar à EMPRESA os serviços/bens acordados em condições adequadas;', 12, false, '#FFFFFF');
+        addText('• Fornecer informações, conteúdos e materiais necessários para execução dos serviços;', 12, false, '#FFFFFF');
+        addText('• Cumprir os prazos ajustados.', 12, false, '#FFFFFF');
+      } else {
+        addText('• Fornecer informações, conteúdos e materiais necessários para execução dos serviços;', 12, false, '#FFFFFF');
+        addText('• Efetuar os pagamentos nas datas ajustadas;', 12, false, '#FFFFFF');
+        addText('• Respeitar os prazos de aprovação e feedback.', 12, false, '#FFFFFF');
+      }
       yPosition += 10;
 
       // CLÁUSULA 6 - RESCISÃO
       addText('CLÁUSULA 6 – RESCISÃO', 14, true, '#DBFB36');
       addText('6.1 O presente contrato poderá ser rescindido por qualquer das partes mediante aviso prévio de 30 (trinta) dias.', 12, false, '#FFFFFF');
-      addText('6.2 Em caso de inadimplência, a EMPRESA poderá suspender os serviços.', 12, false, '#FFFFFF');
+      addText('6.2 Em caso de descumprimento das obrigações por qualquer parte, a parte prejudicada poderá suspender a execução de suas obrigações até a regularização.', 12, false, '#FFFFFF');
       yPosition += 10;
 
       // CLÁUSULA 7 - FORO
@@ -480,7 +505,7 @@ export default function SignContract() {
       }
       
       addText(contract.client_name, 12, true, '#FFFFFF');
-      addText('CLIENTE', 10, false, '#A3A3A3');
+      addText(partnerTitle, 10, false, '#A3A3A3');
       yPosition += 20;
 
       // TERMOS DE USO
@@ -521,15 +546,17 @@ export default function SignContract() {
       addText('Para questões relacionadas ao uso do site, fica eleito o foro da comarca de Itajaí/SC.', 12, false, '#FFFFFF');
 
         // Adicionar metadados
+        const pdfTitle = isPermutaContract() ? 'Contrato de Permuta de Serviços' : 'Contrato de Prestação de Serviços';
         pdf.setProperties({
-          title: `Contrato de Prestação de Serviços - ${contract.client_name}`,
-          subject: 'Contrato de Prestação de Serviços',
+          title: `${pdfTitle} - ${contract.client_name}`,
+          subject: pdfTitle,
           author: 'Kings Agência',
           creator: 'Kings Agência - Sistema de Contratos',
         });
 
       // Baixar o PDF
-      const fileName = `contrato-${contract.client_name.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.pdf`;
+      const contractTypeName = isPermutaContract() ? 'permuta' : 'prestacao-servicos';
+      const fileName = `contrato-${contractTypeName}-${contract.client_name.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.pdf`;
       pdf.save(fileName);
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
@@ -591,7 +618,7 @@ export default function SignContract() {
     
     setSigning(true);
     try {
-      const response = await fetch(`/api/contracts/${token}/sign`, {
+      const response = await fetch(`/api/contracts/sign/${token}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -625,6 +652,11 @@ export default function SignContract() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR');
+  };
+
+  // Função auxiliar para verificar se é contrato de permuta
+  const isPermutaContract = () => {
+    return String(contract?.contract_type || '').trim().toLowerCase() === 'permuta';
   };
 
   if (loading) {
@@ -664,7 +696,9 @@ export default function SignContract() {
                 <h1 className="text-2xl font-bold text-kings-primary">
                   Kings Agência
                 </h1>
-                <p className="text-sm text-kings-text-muted">Contrato de Prestação de Serviços</p>
+                <p className="text-sm text-kings-text-muted">
+                  {isPermutaContract() ? 'Contrato de Permuta de Serviços' : 'Contrato de Prestação de Serviços'}
+                </p>
               </div>
             </div>
           </div>
@@ -697,7 +731,7 @@ export default function SignContract() {
         <div ref={contractRef} className="bg-kings-bg-secondary/50 backdrop-blur-sm border border-kings-border rounded-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
           <div className="text-center mb-6 sm:mb-8">
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 text-kings-text-primary">
-              CONTRATO DE PRESTAÇÃO DE SERVIÇOS
+              {isPermutaContract() ? 'CONTRATO DE PERMUTA DE SERVIÇOS' : 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS'}
             </h2>
             <h3 className="text-lg sm:text-xl font-semibold text-kings-primary">KINGS AGÊNCIA</h3>
           </div>
@@ -707,16 +741,18 @@ export default function SignContract() {
             <div className="bg-kings-bg-tertiary/30 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
               <h4 className="text-lg font-bold mb-4 text-kings-primary">PARTES</h4>
                 <p className="mb-3">
-                  De um lado, <strong>KINGS AGÊNCIA</strong>, inscrito no CPF nº 145.998.009-37, prestando serviços de forma online, doravante denominado <strong>EMPRESA</strong>;
+                  De um lado, <strong>KINGS AGÊNCIA</strong>, inscrita no CPF nº 145.998.009-37, prestando serviços de forma online, doravante denominada <strong>EMPRESA</strong>;
                 </p>
                 <p>
-                  E de outro, <strong>{contract.client_name}</strong>, inscrito no CPF nº <strong>{contract.client_document.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}</strong>, doravante denominado <strong>CLIENTE</strong>.
+                  E de outro, <strong>{contract.client_name}</strong>, inscrito no CPF nº <strong>{contract.client_document.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}</strong>, doravante denominado <strong>{isPermutaContract() ? 'PARCEIRO' : 'CLIENTE'}</strong>.
                 </p>
             </div>
 
             {/* Título do Contrato */}
             <div className="text-center mb-8">
-              <h3 className="text-2xl font-bold text-kings-primary">CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h3>
+              <h3 className="text-2xl font-bold text-kings-primary">
+                {isPermutaContract() ? 'CONTRATO DE PERMUTA DE SERVIÇOS' : 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS'}
+              </h3>
             </div>
 
             {/* Cláusulas do Contrato */}
@@ -725,25 +761,47 @@ export default function SignContract() {
               <div>
                 <h4 className="text-xl font-bold mb-4 text-kings-primary border-b border-kings-border pb-2">CLÁUSULA 1 – OBJETO</h4>
                 <div className="space-y-3">
-                  <p>
-                    <span className="font-semibold">1.1</span> O presente contrato tem por objeto a prestação de serviços pela EMPRESA ao CLIENTE, podendo incluir:
-                  </p>
-                  <ul className="list-disc list-inside ml-6 space-y-1">
-                    <li>Criação, desenvolvimento e manutenção de sites;</li>
-                    <li>Hospedagem e suporte técnico;</li>
-                    <li>Design e soluções digitais personalizadas.</li>
-                  </ul>
-                  <p>
-                    <span className="font-semibold">1.2</span> O site será desenvolvido de acordo com a escolha e informações fornecidas pelo CLIENTE no início do projeto, garantindo que o valor contratado cobre a entrega conforme esse combinado.
-                  </p>
-                  <p>
-                    <span className="font-semibold">1.3</span> As alterações ou modificações visuais nos serviços prestados seguirão as condições de cada plano contratado:
-                  </p>
-                  <ul className="list-disc list-inside ml-6 space-y-2 mt-2">
-                    <li><strong>Plano Básico:</strong> qualquer alteração visual solicitada será cobrada à parte, conforme tabela vigente da EMPRESA;</li>
-                    <li><strong>Plano Avançado:</strong> inclui até 1 (uma) alteração visual gratuita por mês. Alterações adicionais serão cobradas à parte;</li>
-                    <li><strong>Plano Premium:</strong> inclui até 3 (três) alterações visuais gratuitas por mês. Alterações adicionais serão cobradas à parte.</li>
-                  </ul>
+                  {isPermutaContract() ? (
+                    <>
+                      <p>
+                        <span className="font-semibold">1.1</span> O presente contrato tem por objeto a troca de serviços entre as partes, em regime de permuta, consistindo em:
+                      </p>
+                      <p>
+                        A EMPRESA fornecerá ao PARCEIRO serviços de criação, desenvolvimento e manutenção de sites, hospedagem, suporte técnico, design e soluções digitais personalizadas.
+                      </p>
+                      <p>
+                        O PARCEIRO, em contrapartida, fornecerá à EMPRESA os seguintes serviços/bens: <strong>{contract.partner_services || '[especificar aqui o que será oferecido pelo PARCEIRO – ex: fotografia, marketing, produtos, etc.]'}</strong>.
+                      </p>
+                      <p>
+                        <span className="font-semibold">1.2</span> Cada parte declara estar ciente do valor estimado dos serviços ofertados pela outra, de modo que a permuta é considerada justa e equivalente.
+                      </p>
+                      <p>
+                        <span className="font-semibold">1.3</span> Eventuais alterações ou acréscimos de serviços por qualquer das partes deverão ser objeto de aditivo contratual.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p>
+                        <span className="font-semibold">1.1</span> O presente contrato tem por objeto a prestação de serviços pela EMPRESA ao CLIENTE, podendo incluir:
+                      </p>
+                      <ul className="list-disc list-inside ml-6 space-y-1">
+                        <li>Criação, desenvolvimento e manutenção de sites;</li>
+                        <li>Hospedagem e suporte técnico;</li>
+                        <li>Design e soluções digitais personalizadas.</li>
+                      </ul>
+                      <p>
+                        <span className="font-semibold">1.2</span> O site será desenvolvido de acordo com a escolha e informações fornecidas pelo CLIENTE no início do projeto, garantindo que o valor contratado cobre a entrega conforme esse combinado.
+                      </p>
+                      <p>
+                        <span className="font-semibold">1.3</span> As alterações ou modificações visuais nos serviços prestados seguirão as condições de cada plano contratado:
+                      </p>
+                      <ul className="list-disc list-inside ml-6 space-y-2 mt-2">
+                        <li><strong>Plano Básico:</strong> qualquer alteração visual solicitada será cobrada à parte, conforme tabela vigente da EMPRESA;</li>
+                        <li><strong>Plano Avançado:</strong> inclui até 1 (uma) alteração visual gratuita por mês. Alterações adicionais serão cobradas à parte;</li>
+                        <li><strong>Plano Premium:</strong> inclui até 3 (três) alterações visuais gratuitas por mês. Alterações adicionais serão cobradas à parte.</li>
+                      </ul>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -751,26 +809,44 @@ export default function SignContract() {
               <div>
                 <h4 className="text-xl font-bold mb-4 text-kings-primary border-b border-kings-border pb-2">CLÁUSULA 2 – PRAZO</h4>
                 <p>
-                  <span className="font-semibold">2.1</span> O prazo para entrega dos serviços será definido em cronograma acordado entre as partes.
+                  <span className="font-semibold">2.1</span> O prazo de execução dos serviços será definido em cronograma acordado entre as partes, respeitando as condições previamente estabelecidas.
                 </p>
               </div>
 
-              {/* Cláusula 3 - Valor e Pagamento */}
+              {/* Cláusula 3 - Valor e Condições */}
               <div>
-                <h4 className="text-xl font-bold mb-4 text-kings-primary border-b border-kings-border pb-2">CLÁUSULA 3 – VALOR E PAGAMENTO</h4>
+                <h4 className="text-xl font-bold mb-4 text-kings-primary border-b border-kings-border pb-2">
+                  {isPermutaContract() ? 'CLÁUSULA 3 – VALOR E CONDIÇÕES DA PERMUTA' : 'CLÁUSULA 3 – VALOR E PAGAMENTO'}
+                </h4>
                 <div className="space-y-3">
-                  <p>
-                    <span className="font-semibold">3.1</span> O CLIENTE pagará à EMPRESA o valor total de <strong className="text-kings-primary text-lg">{formatCurrency(contract.contract_value)}</strong>, que deverá ser pago inteiramente no momento da finalização e entrega do site.
-                  </p>
-                  <p>
-                    <span className="font-semibold">3.2</span> Em caso de mensalidade (hospedagem/manutenção), o pagamento ocorrerá todo dia <strong>{contract.payment_date.split('-')[2]}</strong> de cada mês.
-                  </p>
-                  <p>
-                    <span className="font-semibold">3.3</span> Os valores poderão ser reajustados ou alterados, mediante aviso prévio de 30 (trinta) dias ao CLIENTE.
-                  </p>
-                  <p>
-                    <span className="font-semibold">3.4</span> O valor do contrato não será reajustado continuamente; somente poderá haver cobrança adicional em caso de alterações solicitadas pelo CLIENTE, conforme Cláusula 1.3.
-                  </p>
+                  {isPermutaContract() ? (
+                    <>
+                      <p>
+                        <span className="font-semibold">3.1</span> Não haverá pagamento em dinheiro entre as partes, salvo se houver desequilíbrio no valor da permuta.
+                      </p>
+                      <p>
+                        <span className="font-semibold">3.2</span> Caso uma das partes solicite serviços adicionais não previstos na troca, estes poderão ser cobrados financeiramente ou compensados em novo ajuste de permuta.
+                      </p>
+                      <p>
+                        <span className="font-semibold">3.3</span> O valor da permuta poderá ser revisado mediante acordo mútuo e por escrito entre as partes.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p>
+                        <span className="font-semibold">3.1</span> O CLIENTE pagará à EMPRESA o valor total de <strong className="text-kings-primary text-lg">{formatCurrency(contract.contract_value)}</strong>, que deverá ser pago inteiramente no momento da finalização e entrega do site.
+                      </p>
+                      <p>
+                        <span className="font-semibold">3.2</span> Em caso de mensalidade (hospedagem/manutenção), o pagamento ocorrerá todo dia <strong>{contract.payment_date.split('-')[2]}</strong> de cada mês.
+                      </p>
+                      <p>
+                        <span className="font-semibold">3.3</span> Os valores poderão ser reajustados ou alterados, mediante aviso prévio de 30 (trinta) dias ao CLIENTE.
+                      </p>
+                      <p>
+                        <span className="font-semibold">3.4</span> O valor do contrato não será reajustado continuamente; somente poderá haver cobrança adicional em caso de alterações solicitadas pelo CLIENTE, conforme Cláusula 1.3.
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -779,18 +855,30 @@ export default function SignContract() {
                 <h4 className="text-xl font-bold mb-4 text-kings-primary border-b border-kings-border pb-2">CLÁUSULA 4 – OBRIGAÇÕES DA EMPRESA</h4>
                 <ul className="list-disc list-inside space-y-1">
                   <li>Entregar os serviços contratados dentro do prazo estabelecido;</li>
-                  <li>Garantir a confidencialidade das informações do CLIENTE;</li>
+                  <li>Garantir a confidencialidade das informações recebidas;</li>
                   <li>Prestar suporte técnico conforme acordado.</li>
                 </ul>
               </div>
 
-              {/* Cláusula 5 - Obrigações do Cliente */}
+              {/* Cláusula 5 - Obrigações do Parceiro/Cliente */}
               <div>
-                <h4 className="text-xl font-bold mb-4 text-kings-primary border-b border-kings-border pb-2">CLÁUSULA 5 – OBRIGAÇÕES DO CLIENTE</h4>
+                <h4 className="text-xl font-bold mb-4 text-kings-primary border-b border-kings-border pb-2">
+                  {isPermutaContract() ? 'CLÁUSULA 5 – OBRIGAÇÕES DO PARCEIRO' : 'CLÁUSULA 5 – OBRIGAÇÕES DO CLIENTE'}
+                </h4>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>Fornecer informações, conteúdos e materiais necessários para execução dos serviços;</li>
-                  <li>Efetuar os pagamentos nas datas ajustadas;</li>
-                  <li>Respeitar os prazos de aprovação e feedback.</li>
+                  {isPermutaContract() ? (
+                    <>
+                      <li>Entregar à EMPRESA os serviços/bens acordados em condições adequadas;</li>
+                      <li>Fornecer informações, conteúdos e materiais necessários para execução dos serviços;</li>
+                      <li>Cumprir os prazos ajustados.</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>Fornecer informações, conteúdos e materiais necessários para execução dos serviços;</li>
+                      <li>Efetuar os pagamentos nas datas ajustadas;</li>
+                      <li>Respeitar os prazos de aprovação e feedback.</li>
+                    </>
+                  )}
                 </ul>
               </div>
 
@@ -802,7 +890,7 @@ export default function SignContract() {
                     <span className="font-semibold">6.1</span> O presente contrato poderá ser rescindido por qualquer das partes mediante aviso prévio de 30 (trinta) dias.
                   </p>
                   <p>
-                    <span className="font-semibold">6.2</span> Em caso de inadimplência, a EMPRESA poderá suspender os serviços.
+                    <span className="font-semibold">6.2</span> Em caso de descumprimento das obrigações por qualquer parte, a parte prejudicada poderá suspender a execução de suas obrigações até a regularização.
                   </p>
                 </div>
               </div>
@@ -854,7 +942,7 @@ export default function SignContract() {
                       </div>
                     ) : null}
                     <p className="text-sm font-semibold text-kings-text-primary">{contract.client_name}</p>
-                    <p className="text-xs text-kings-text-muted">CLIENTE</p>
+                    <p className="text-xs text-kings-text-muted">{isPermutaContract() ? 'PARCEIRO' : 'CLIENTE'}</p>
                   </div>
                 </div>
               </div>

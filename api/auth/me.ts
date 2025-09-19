@@ -6,24 +6,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Simular autenticação - em produção, usar JWT ou session
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    
-    if (!token) {
-      return res.status(401).json({ error: 'Token não fornecido' });
+    // Verificar cookie de sessão
+    const cookies = req.headers.cookie;
+    if (!cookies) {
+      return res.status(401).json({ error: 'Sessão não encontrada' });
     }
 
-    // Simular verificação de token
-    if (token === 'session-1757722119726-jresk54yi') {
+    const sessionToken = cookies
+      .split(';')
+      .find(cookie => cookie.trim().startsWith('session_token='))
+      ?.split('=')[1];
+
+    if (!sessionToken) {
+      return res.status(401).json({ error: 'Token de sessão não encontrado' });
+    }
+
+    // Verificar se o token é válido (formato: session-timestamp-random)
+    if (sessionToken.startsWith('session-')) {
       return res.status(200).json({
         id: 'user-1',
-        email: 'admin@kings.com',
-        name: 'Administrador Kings',
+        email: 'user@kings.com',
+        name: 'Administrador',
         picture: 'https://via.placeholder.com/150'
       });
     }
 
-    return res.status(401).json({ error: 'Token inválido' });
+    return res.status(401).json({ error: 'Token de sessão inválido' });
   } catch (error) {
     console.error('Erro na autenticação:', error);
     return res.status(500).json({ error: 'Erro interno do servidor' });

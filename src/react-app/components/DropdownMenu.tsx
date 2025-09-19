@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useEffect, useRef } from 'react';
 
 interface DropdownMenuProps {
   isOpen: boolean;
@@ -9,66 +8,20 @@ interface DropdownMenuProps {
 }
 
 export default function DropdownMenu({ isOpen, onClose, triggerRef, children }: DropdownMenuProps) {
-  const [position, setPosition] = useState({ top: 0, left: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (isOpen && triggerRef.current) {
-      const updatePosition = () => {
-        if (triggerRef.current) {
-          const rect = triggerRef.current.getBoundingClientRect();
-          const viewportHeight = window.innerHeight;
-          const viewportWidth = window.innerWidth;
-          const menuHeight = 200; // Altura estimada do menu
-          const menuWidth = 160; // Largura do menu
-          
-          // Calcular posição horizontal (alinhar à direita do botão)
-          let left = rect.right - menuWidth;
-          if (left < 10) left = 10; // Margem mínima da esquerda
-          if (left + menuWidth > viewportWidth - 10) left = viewportWidth - menuWidth - 10;
-          
-          // Calcular posição vertical
-          let top = rect.bottom + 8; // 8px de espaçamento
-          
-          // Se não há espaço abaixo, mostrar acima
-          if (top + menuHeight > viewportHeight - 10) {
-            top = rect.top - menuHeight - 8;
-          }
-          
-          setPosition({ top, left });
-        }
-      };
-
-      updatePosition();
-      
-      // Atualizar posição quando a janela for redimensionada ou rolada
-      const handleResize = () => updatePosition();
-      const handleScroll = () => updatePosition();
-      
-      window.addEventListener('resize', handleResize);
-      window.addEventListener('scroll', handleScroll, true);
-      
-      return () => {
-        window.removeEventListener('resize', handleResize);
-        window.removeEventListener('scroll', handleScroll, true);
-      };
-    }
-  }, [isOpen, triggerRef]);
 
   useEffect(() => {
     if (isOpen) {
       const handleClickOutside = (event: MouseEvent) => {
-        // Adicionar um pequeno delay para permitir que os cliques nos botões sejam processados
-        setTimeout(() => {
-          if (
-            menuRef.current &&
-            !menuRef.current.contains(event.target as Node) &&
-            triggerRef.current &&
-            !triggerRef.current.contains(event.target as Node)
-          ) {
-            onClose();
-          }
-        }, 100);
+        // Verificar se o clique foi fora do menu e do botão
+        if (
+          menuRef.current &&
+          !menuRef.current.contains(event.target as Node) &&
+          triggerRef.current &&
+          !triggerRef.current.contains(event.target as Node)
+        ) {
+          onClose();
+        }
       };
 
       const handleEscape = (event: KeyboardEvent) => {
@@ -77,11 +30,15 @@ export default function DropdownMenu({ isOpen, onClose, triggerRef, children }: 
         }
       };
 
-      document.addEventListener('mouseup', handleClickOutside);
-      document.addEventListener('keydown', handleEscape);
+      // Usar um delay para evitar conflitos
+      const timeoutId = setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleEscape);
+      }, 100);
 
       return () => {
-        document.removeEventListener('mouseup', handleClickOutside);
+        clearTimeout(timeoutId);
+        document.removeEventListener('mousedown', handleClickOutside);
         document.removeEventListener('keydown', handleEscape);
       };
     }
@@ -89,17 +46,12 @@ export default function DropdownMenu({ isOpen, onClose, triggerRef, children }: 
 
   if (!isOpen) return null;
 
-  return createPortal(
+  return (
     <div
       ref={menuRef}
-      className="fixed bg-kings-bg-secondary border border-kings-border rounded-lg shadow-lg z-[9999] min-w-[160px]"
-      style={{
-        top: `${position.top}px`,
-        left: `${position.left}px`,
-      }}
+      className="absolute right-0 top-full mt-2 bg-kings-bg-secondary border border-kings-border rounded-lg shadow-xl z-[9999] min-w-[160px] max-w-[200px]"
     >
       {children}
-    </div>,
-    document.body
+    </div>
   );
 }

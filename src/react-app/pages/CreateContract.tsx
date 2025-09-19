@@ -22,6 +22,8 @@ export default function CreateContract() {
     company_name: '',
     contract_value: 0,
     payment_date: '',
+    contract_type: 'service',
+    partner_services: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -61,6 +63,8 @@ export default function CreateContract() {
         company_name: contractData.company_name || '',
         contract_value: contractData.contract_value || 0,
         payment_date: contractData.payment_date || '',
+        contract_type: contractData.contract_type || 'service',
+        partner_services: contractData.partner_services || '',
       });
     }
   }, [isEditMode, contractData]);
@@ -119,7 +123,7 @@ export default function CreateContract() {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
     let processedValue = value;
@@ -162,12 +166,16 @@ export default function CreateContract() {
       newErrors.client_email = 'Email inválido';
     }
 
-    if (!formData.contract_value || formData.contract_value <= 0) {
+    if (formData.contract_type === 'service' && (!formData.contract_value || formData.contract_value <= 0)) {
       newErrors.contract_value = 'Valor deve ser maior que zero';
     }
 
-    if (!formData.payment_date) {
+    if (formData.contract_type === 'service' && !formData.payment_date) {
       newErrors.payment_date = 'Data de pagamento é obrigatória';
+    }
+
+    if (formData.contract_type === 'permuta' && !formData.partner_services?.trim()) {
+      newErrors.partner_services = 'Especificação dos serviços do parceiro é obrigatória';
     }
 
     setErrors(newErrors);
@@ -221,7 +229,7 @@ export default function CreateContract() {
 
         if (response.ok) {
           const result = await response.json();
-          const signatureLink = `${window.location.origin}${result.signature_link}`;
+          const signatureLink = `https://contratos.kingsagencia.com.br/api/contracts/${result.signature_link_token}`;
           
           // Copiar o link automaticamente para a área de transferência
           try {
@@ -289,6 +297,73 @@ export default function CreateContract() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Contract Type Selection */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-kings-text-secondary mb-3">
+                Tipo de Contrato *
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className={`relative flex items-center p-4 border rounded-lg cursor-pointer transition-all ${
+                  formData.contract_type === 'service' 
+                    ? 'border-kings-primary bg-kings-primary/10' 
+                    : 'border-kings-border bg-kings-bg-tertiary hover:bg-kings-bg-tertiary/80'
+                }`}>
+                  <input
+                    type="radio"
+                    name="contract_type"
+                    value="service"
+                    checked={formData.contract_type === 'service'}
+                    onChange={handleInputChange}
+                    className="sr-only"
+                  />
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-4 h-4 rounded-full border-2 ${
+                      formData.contract_type === 'service' 
+                        ? 'border-kings-primary bg-kings-primary' 
+                        : 'border-kings-border'
+                    }`}>
+                      {formData.contract_type === 'service' && (
+                        <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-medium text-kings-text-primary">Prestação de Serviços</div>
+                      <div className="text-sm text-kings-text-muted">Contrato com pagamento em dinheiro</div>
+                    </div>
+                  </div>
+                </label>
+
+                <label className={`relative flex items-center p-4 border rounded-lg cursor-pointer transition-all ${
+                  formData.contract_type === 'permuta' 
+                    ? 'border-kings-primary bg-kings-primary/10' 
+                    : 'border-kings-border bg-kings-bg-tertiary hover:bg-kings-bg-tertiary/80'
+                }`}>
+                  <input
+                    type="radio"
+                    name="contract_type"
+                    value="permuta"
+                    checked={formData.contract_type === 'permuta'}
+                    onChange={handleInputChange}
+                    className="sr-only"
+                  />
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-4 h-4 rounded-full border-2 ${
+                      formData.contract_type === 'permuta' 
+                        ? 'border-kings-primary bg-kings-primary' 
+                        : 'border-kings-border'
+                    }`}>
+                      {formData.contract_type === 'permuta' && (
+                        <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-medium text-kings-text-primary">Contrato de Permuta</div>
+                      <div className="text-sm text-kings-text-muted">Troca de serviços entre as partes</div>
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
             {/* Client Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -380,42 +455,64 @@ export default function CreateContract() {
             </div>
 
             {/* Contract Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="contract_value" className="block text-sm font-medium text-kings-text-secondary mb-2">
-                  <DollarSign className="h-4 w-4 inline mr-2" />
-                  Valor do Contrato (R$) *
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  id="contract_value"
-                  name="contract_value"
-                  value={formData.contract_value || ''}
-                  onChange={handleInputChange}
-                  className={`w-full px-4 py-3 bg-kings-bg-tertiary border ${errors.contract_value ? 'border-red-500' : 'border-kings-border'} rounded-lg focus:ring-2 focus:ring-kings-primary focus:border-transparent text-kings-text-primary placeholder-kings-text-subtle [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
-                  placeholder="0.00"
-                />
-                {errors.contract_value && <p className="mt-1 text-sm text-red-400">{errors.contract_value}</p>}
-              </div>
+            {formData.contract_type === 'service' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="contract_value" className="block text-sm font-medium text-kings-text-secondary mb-2">
+                    <DollarSign className="h-4 w-4 inline mr-2" />
+                    Valor do Contrato (R$) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    id="contract_value"
+                    name="contract_value"
+                    value={formData.contract_value || ''}
+                    onChange={handleInputChange}
+                    className={`w-full px-4 py-3 bg-kings-bg-tertiary border ${errors.contract_value ? 'border-red-500' : 'border-kings-border'} rounded-lg focus:ring-2 focus:ring-kings-primary focus:border-transparent text-kings-text-primary placeholder-kings-text-subtle [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                    placeholder="0.00"
+                  />
+                  {errors.contract_value && <p className="mt-1 text-sm text-red-400">{errors.contract_value}</p>}
+                </div>
 
-              <div>
-                <label htmlFor="payment_date" className="block text-sm font-medium text-kings-text-secondary mb-2">
-                  <Calendar className="h-4 w-4 inline mr-2" />
-                  Data de Pagamento *
-                </label>
-                <input
-                  type="date"
-                  id="payment_date"
-                  name="payment_date"
-                  value={formData.payment_date}
-                  onChange={handleInputChange}
-                  className={`w-full px-4 py-3 bg-kings-bg-tertiary border ${errors.payment_date ? 'border-red-500' : 'border-kings-border'} rounded-lg focus:ring-2 focus:ring-kings-primary focus:border-transparent text-kings-text-primary`}
-                />
-                {errors.payment_date && <p className="mt-1 text-sm text-red-400">{errors.payment_date}</p>}
+                <div>
+                  <label htmlFor="payment_date" className="block text-sm font-medium text-kings-text-secondary mb-2">
+                    <Calendar className="h-4 w-4 inline mr-2" />
+                    Data de Pagamento *
+                  </label>
+                  <input
+                    type="date"
+                    id="payment_date"
+                    name="payment_date"
+                    value={formData.payment_date}
+                    onChange={handleInputChange}
+                    className={`w-full px-4 py-3 bg-kings-bg-tertiary border ${errors.payment_date ? 'border-red-500' : 'border-kings-border'} rounded-lg focus:ring-2 focus:ring-kings-primary focus:border-transparent text-kings-text-primary`}
+                  />
+                  {errors.payment_date && <p className="mt-1 text-sm text-red-400">{errors.payment_date}</p>}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div>
+                <label htmlFor="partner_services" className="block text-sm font-medium text-kings-text-secondary mb-2">
+                  <FileText className="h-4 w-4 inline mr-2" />
+                  Serviços/Bens do Parceiro *
+                </label>
+                <textarea
+                  id="partner_services"
+                  name="partner_services"
+                  value={formData.partner_services || ''}
+                  onChange={handleInputChange}
+                  rows={4}
+                  className={`w-full px-4 py-3 bg-kings-bg-tertiary border ${errors.partner_services ? 'border-red-500' : 'border-kings-border'} rounded-lg focus:ring-2 focus:ring-kings-primary focus:border-transparent text-kings-text-primary placeholder-kings-text-subtle resize-none`}
+                  placeholder="Especifique o que será oferecido pelo PARCEIRO - ex: fotografia, marketing, produtos, etc."
+                />
+                {errors.partner_services && <p className="mt-1 text-sm text-red-400">{errors.partner_services}</p>}
+                <p className="mt-2 text-sm text-kings-text-muted">
+                  Descreva detalhadamente os serviços ou bens que o parceiro oferecerá em troca dos serviços da Kings Agência.
+                </p>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="pt-6 border-t border-kings-border">

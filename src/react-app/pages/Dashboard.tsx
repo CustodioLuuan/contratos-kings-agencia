@@ -139,6 +139,10 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
     } finally {
+      // Limpar estado local
+      setUser(null);
+      setContracts([]);
+      // Redirecionar para home
       navigate('/');
     }
   };
@@ -220,7 +224,7 @@ export default function Dashboard() {
     if (!contractToDelete) return;
     
     try {
-      const response = await fetch(`/api/contracts/${contractToDelete.id}`, {
+      const response = await fetch(`/api/contracts/delete/${contractToDelete.id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -245,7 +249,7 @@ export default function Dashboard() {
 
   const handleCopyLink = async (contract: Contract) => {
     if (contract.signature_link_token) {
-      const link = `${window.location.origin}/sign/${contract.signature_link_token}`;
+      const link = `https://contratos.kingsagencia.com.br/api/contracts/${contract.signature_link_token}`;
       try {
         await navigator.clipboard.writeText(link);
         showNotificationMessage('success', 'Link copiado!', 'Link copiado automaticamente para a área de transferência');

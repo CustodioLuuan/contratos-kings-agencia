@@ -7,3 +7,4 @@ worker-configuration.d.ts
 .vercel
 
 .vercel
+.env*.local

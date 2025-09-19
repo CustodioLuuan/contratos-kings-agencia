@@ -118,14 +118,6 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Credenciais de Desenvolvimento */}
-          <div className="mt-6 p-4 bg-kings-bg-tertiary/50 border border-kings-border rounded-lg">
-            <p className="text-sm text-kings-text-muted mb-2">Para desenvolvimento:</p>
-            <p className="text-xs text-kings-text-secondary">
-              <strong>Email:</strong> admin@kings.com<br />
-              <strong>Senha:</strong> 123456
-            </p>
-          </div>
         </div>
 
         {/* Voltar para Home */}

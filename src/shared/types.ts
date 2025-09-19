@@ -10,6 +10,8 @@ export const ContractSchema = z.object({
   company_name: z.string().nullable(),
   contract_value: z.number(),
   payment_date: z.string(),
+  contract_type: z.enum(['service', 'permuta']).default('service'),
+  partner_services: z.string().nullable(),
   status: z.enum(['pending', 'signed']),
   signature_link_token: z.string().nullable(),
   signature_data: z.string().nullable(),
@@ -28,6 +30,8 @@ export const CreateContractSchema = z.object({
   company_name: z.string().optional(),
   contract_value: z.number().positive("Valor deve ser maior que zero"),
   payment_date: z.string().min(1, "Data de pagamento é obrigatória"),
+  contract_type: z.enum(['service', 'permuta']).default('service'),
+  partner_services: z.string().optional(),
 });
 
 export type CreateContract = z.infer<typeof CreateContractSchema>;

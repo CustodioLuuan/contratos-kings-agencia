@@ -9,55 +9,18 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { token } = req.query;
 
-  if (req.method === 'GET') {
-    return handleGetContract(req, res, token as string);
-  } else if (req.method === 'POST') {
-    return handleSignContract(req, res, token as string);
-  } else {
+  if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-}
 
-async function handleGetContract(req: VercelRequest, res: VercelResponse, token: string) {
-  try {
-    console.log('🔍 [TOKEN API] Redirecionando para página de assinatura:', token);
-    
-    // Verificar se o contrato existe
-    const { data, error } = await supabase
-      .from('contracts')
-      .select('*')
-      .eq('signature_link_token', token)
-      .limit(1);
-    
-    if (error) {
-      console.log('❌ [TOKEN API] Erro ao buscar contrato:', error);
-      return res.status(500).json({ error: 'Erro interno do servidor' });
-    }
-
-    if (!data || data.length === 0) {
-      console.log('❌ [TOKEN API] Contrato não encontrado para token:', token);
-      return res.status(404).json({ error: 'Contrato não encontrado' });
-    }
-
-    // Redirecionar para a página de assinatura
-    const baseUrl = 'https://contratos.kingsagencia.com.br';
-    const redirectUrl = `${baseUrl}/sign/${token}`;
-    
-    console.log('✅ [TOKEN API] Redirecionando para:', redirectUrl);
-    return res.redirect(302, redirectUrl);
-  } catch (error) {
-    console.error('Erro ao buscar contrato:', error);
-    return res.status(500).json({ error: 'Erro interno do servidor' });
-  }
-}
-
-async function handleSignContract(req: VercelRequest, res: VercelResponse, token: string) {
   try {
     const { signature_data } = req.body;
 
     if (!signature_data) {
       return res.status(400).json({ error: 'Dados de assinatura não fornecidos' });
     }
+
+    console.log('🔍 [SIGN API] Assinando contrato com token:', token);
 
     // Verificar se o contrato existe
     const { data: contracts, error: fetchError } = await supabase
@@ -67,16 +30,19 @@ async function handleSignContract(req: VercelRequest, res: VercelResponse, token
       .limit(1);
     
     if (fetchError) {
+      console.log('❌ [SIGN API] Erro ao buscar contrato:', fetchError);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
 
     if (!contracts || contracts.length === 0) {
+      console.log('❌ [SIGN API] Contrato não encontrado para token:', token);
       return res.status(404).json({ error: 'Contrato não encontrado' });
     }
 
     const contract = contracts[0];
 
     if (contract.status === 'signed') {
+      console.log('⚠️ [SIGN API] Contrato já foi assinado');
       return res.status(400).json({ error: 'Contrato já foi assinado' });
     }
 
@@ -91,15 +57,15 @@ async function handleSignContract(req: VercelRequest, res: VercelResponse, token
       .eq('signature_link_token', token);
 
     if (updateError) {
-      console.error('Erro ao atualizar contrato:', updateError);
+      console.error('❌ [SIGN API] Erro ao atualizar contrato:', updateError);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
 
-    console.log('✅ [TOKEN API] Contrato assinado com sucesso');
+    console.log('✅ [SIGN API] Contrato assinado com sucesso');
 
     return res.status(200).json({ message: 'Contrato assinado com sucesso' });
   } catch (error) {
-    console.error('Erro ao assinar contrato:', error);
+    console.error('❌ [SIGN API] Erro ao assinar contrato:', error);
     return res.status(500).json({ error: 'Erro interno do servidor' });
   }
 }
