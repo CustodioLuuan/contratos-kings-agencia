@@ -19,6 +19,9 @@ export default function SignContract() {
   const [allStrokes, setAllStrokes] = useState<number[][][]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState<string>('');
+  
+  // Detectar se é mobile
+  const isMobile = 'ontouchstart' in window && window.innerWidth <= 768;
 
   // Adicionar estilos de impressão
   useEffect(() => {
@@ -99,16 +102,22 @@ export default function SignContract() {
 
       const rect = canvas.getBoundingClientRect();
       
-      // Debug logs para canvas initialization
-      console.log('🎨 CANVAS INIT DEBUG:');
-      console.log('  rect.width:', rect.width, 'rect.height:', rect.height);
-      console.log('  canvas.style.width:', canvas.style.width, 'canvas.style.height:', canvas.style.height);
+      // Detectar se é desktop (não é mobile)
+      const isDesktop = !('ontouchstart' in window) && window.innerWidth > 768;
       
-      // Configuração SIMPLES para AMBOS - desktop e mobile
-      canvas.width = rect.width;
-      canvas.height = rect.height;
-      
-      console.log('  canvas.width after:', canvas.width, 'canvas.height after:', canvas.height);
+      if (isDesktop) {
+        // Configuração para DESKTOP com devicePixelRatio
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = rect.height + 'px';
+      } else {
+        // Configuração SIMPLES para MOBILE
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+      }
 
       // Set drawing style for smooth lines
       ctx.lineWidth = 3.0;
@@ -122,7 +131,7 @@ export default function SignContract() {
 
       // Fill with white background
       ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, isDesktop ? rect.width : canvas.width, isDesktop ? rect.height : canvas.height);
     };
 
     // Delay para garantir que o DOM esteja carregado
@@ -143,28 +152,27 @@ export default function SignContract() {
   }, []);
 
   const getPosition = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, canvas: HTMLCanvasElement) => {
-    // Para desktop, usar offsetX/offsetY que são mais diretos
-    if (!('touches' in e)) {
-      const mouseEvent = e as React.MouseEvent<HTMLCanvasElement>;
-      const x = mouseEvent.nativeEvent.offsetX;
-      const y = mouseEvent.nativeEvent.offsetY;
-      
-      console.log('🖥️ DESKTOP DEBUG (offsetX/offsetY):');
-      console.log('  offsetX:', x, 'offsetY:', y);
-      console.log('  canvas.width:', canvas.width, 'canvas.height:', canvas.height);
-      
-      return [x, y];
-    }
-    
-    // Para mobile, usar a abordagem anterior que já funciona
     const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches[0].clientX;
-    const clientY = e.touches[0].clientY;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     
+    // Calcular coordenadas relativas ao canvas
     const x = clientX - rect.left;
     const y = clientY - rect.top;
     
-    return [x, y];
+    // Detectar se é desktop
+    const isDesktop = !('ontouchstart' in window) && window.innerWidth > 768;
+    
+    if (isDesktop) {
+      // Aplicar escala do devicePixelRatio apenas no DESKTOP
+      const dpr = window.devicePixelRatio || 1;
+      const scaledX = x * dpr;
+      const scaledY = y * dpr;
+      return [scaledX, scaledY];
+    } else {
+      // Coordenadas DIRETAS para MOBILE
+      return [x, y];
+    }
   };
 
   // Filtro de suavização para reduzir tremores
@@ -1057,6 +1065,33 @@ export default function SignContract() {
         {/* Signature Section */}
         {!signed && (
           <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-white' : 'bg-kings-bg-secondary/50 backdrop-blur-sm border border-kings-border rounded-lg p-8'}`}>
+            {/* Mensagem obrigatória para mobile */}
+            {isMobile && !isFullscreen && (
+              <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-yellow-100 p-2 rounded-full">
+                    <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-yellow-800">Assinatura Obrigatória em Tela Cheia</h3>
+                    <p className="text-sm text-yellow-700 mt-1">
+                      Para uma melhor experiência de assinatura no mobile, use o modo tela cheia.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={toggleFullscreen}
+                  className="mt-3 w-full px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors text-sm flex items-center justify-center space-x-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  </svg>
+                  <span>Ativar Tela Cheia</span>
+                </button>
+              </div>
+            )}
             {isFullscreen ? (
               // Layout de tela cheia para mobile
               <div className="h-full flex flex-col">
@@ -1174,25 +1209,28 @@ export default function SignContract() {
                 </div>
 
                 <p className="text-kings-text-muted mb-6">
-                  Desenhe sua assinatura no campo abaixo para concordar com os termos do contrato:
+                  {isMobile ? 
+                    "Use o modo tela cheia para uma melhor experiência de assinatura no mobile." :
+                    "Desenhe sua assinatura no campo abaixo para concordar com os termos do contrato:"
+                  }
                 </p>
 
-                <div className="border-2 border-dashed border-kings-border rounded-lg p-2 sm:p-4 mb-6">
+                <div className={`border-2 border-dashed rounded-lg p-2 sm:p-4 mb-6 ${isMobile ? 'border-gray-300 bg-gray-50' : 'border-kings-border'}`}>
               <canvas
                 ref={canvasRef}
-                className={`border border-kings-border rounded bg-white touch-none w-full max-w-full`}
+                className={`border border-kings-border rounded bg-white touch-none w-full max-w-full ${isMobile ? 'opacity-50 pointer-events-none' : ''}`}
                 style={{ 
                   height: isFullscreen ? 'calc(100vh - 200px)' : '200px',
                   display: 'block',
                   margin: '0 auto',
                   maxWidth: '100%',
-                  cursor: 'url("data:image/svg+xml;base64,PHN2ZyBjbGFzcz0idzYgaDYgdGV4dC1ncmF5LTgwMCBkYXJrOnRleHQtd2hpdGUiIGFyaWEtaGlkZGVuPSJ0cnVlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0iY3VycmVudENvbG9yIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTE1LjUxNCAzLjI5M2ExIDEgMCAwIDAtMS40MTUgMEwxMi4xNTEgNS4yNGEuOTMuOTMgMCAwIDEgLjA1Ni4wNTJsNi41IDYuNWEuOTcuOTcgMCAwIDEgLjA1Mi4wNTZMMjAuNzA3IDkuOWExIDEgMCAwIDAgMC0xLjQxNWwtNS4xOTMtNS4xOTNaTTcuMDA0IDguMjdsMy44OTItMS40NiA2LjI5MyA2LjI5My0xLjQ2IDMuODkzYTEgMSAwIDAgMS0uNjAzLjU5MWwtOS40OTQgMy4zNTVhMSAxIDAgMCAxLS45OC0uMThsNi40NTItNi40NTNhMSAxIDAgMCAwLTEuNDE0LTEuNDE0bC02LjQ1MyA2LjQ1MmExIDEgMCAwIDEtLjE4LS45OGwzLjM1NS05LjQ5NGExIDEgMCAwIDEgLjU5MS0uNjAzWiIgY2xpcC1ydWxlPSJldmVub2RkIi8+PC9zdmc+") 2 22, auto'
+                  cursor: isMobile ? 'not-allowed' : 'url("data:image/svg+xml;base64,PHN2ZyBjbGFzcz0idzYgaDYgdGV4dC1ncmF5LTgwMCBkYXJrOnRleHQtd2hpdGUiIGFyaWEtaGlkZGVuPSJ0cnVlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0iY3VycmVudENvbG9yIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTE1LjUxNCAzLjI5M2ExIDEgMCAwIDAtMS40MTUgMEwxMi4xNTEgNS4yNGEuOTMuOTMgMCAwIDEgLjA1Ni4wNTJsNi41IDYuNWEuOTcuOTcgMCAwIDEgLjA1Mi4wNTZMMjAuNzA3IDkuOWExIDEgMCAwIDAgMC0xLjQxNWwtNS4xOTMtNS4xOTNaTTcuMDA0IDguMjdsMy44OTItMS40NiA2LjI5MyA2LjI5My0xLjQ2IDMuODkzYTEgMSAwIDAgMS0uNjAzLjU5MWwtOS40OTQgMy4zNTVhMSAxIDAgMCAxLS45OC0uMThsNi40NTItNi40NTNhMSAxIDAgMCAwLTEuNDE0LTEuNDE0bC02LjQ1MyA2LjQ1MmExIDEgMCAwIDEtLjE4LS45OGwzLjM1NS05LjQ5NGExIDEgMCAwIDEgLjU5MS0uNjAzWiIgY2xpcC1ydWxlPSJldmVub2RkIi8+PC9zdmc+") 2 22, auto'
                 }}
-                onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={stopDrawing}
-                onMouseLeave={stopDrawing}
-                onTouchStart={(e) => {
+                onMouseDown={isMobile ? undefined : startDrawing}
+                onMouseMove={isMobile ? undefined : draw}
+                onMouseUp={isMobile ? undefined : stopDrawing}
+                onMouseLeave={isMobile ? undefined : stopDrawing}
+                onTouchStart={isMobile ? undefined : (e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   if (signed) return;
@@ -1204,7 +1242,7 @@ export default function SignContract() {
                   const newPoints = [getPosition(e, canvas)];
                   setPoints(newPoints);
                 }}
-                onTouchMove={(e) => {
+                onTouchMove={isMobile ? undefined : (e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   if (!isDrawing || signed) return;
@@ -1216,7 +1254,7 @@ export default function SignContract() {
                   setPoints(newPoints);
                   redraw(canvas, newPoints);
                 }}
-                onTouchEnd={(e) => {
+                onTouchEnd={isMobile ? undefined : (e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   stopDrawing();
@@ -1257,11 +1295,15 @@ export default function SignContract() {
                 </button>
               </div>
 
-              <button
-                onClick={handleSign}
-                disabled={signing}
-                className="w-full sm:w-auto flex items-center justify-center space-x-2 px-4 sm:px-6 py-2 sm:py-3 bg-kings-primary hover:bg-kings-primary-dark text-kings-bg-primary rounded-lg font-medium transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-              >
+                <button
+                  onClick={handleSign}
+                  disabled={signing || (isMobile && !isFullscreen)}
+                  className={`w-full sm:w-auto flex items-center justify-center space-x-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-all duration-200 transform text-sm sm:text-base ${
+                    isMobile && !isFullscreen 
+                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                      : 'bg-kings-primary hover:bg-kings-primary-dark text-kings-bg-primary hover:scale-105'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
                 {signing ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-kings-bg-primary"></div>
