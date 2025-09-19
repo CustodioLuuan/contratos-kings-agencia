@@ -97,12 +97,24 @@ export default function SignContract() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // Configuração MUITO simples - sem devicePixelRatio
       const rect = canvas.getBoundingClientRect();
       
-      // Tamanho do canvas igual ao tamanho visual
-      canvas.width = rect.width;
-      canvas.height = rect.height;
+      // Detectar se é desktop (não é mobile)
+      const isDesktop = !('ontouchstart' in window) && window.innerWidth > 768;
+      
+      if (isDesktop) {
+        // Configuração para DESKTOP com devicePixelRatio
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = rect.height + 'px';
+      } else {
+        // Configuração SIMPLES para MOBILE
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+      }
 
       // Set drawing style for smooth lines
       ctx.lineWidth = 3.0;
@@ -116,7 +128,7 @@ export default function SignContract() {
 
       // Fill with white background
       ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, isDesktop ? rect.width : canvas.width, isDesktop ? rect.height : canvas.height);
     };
 
     // Delay para garantir que o DOM esteja carregado
@@ -141,11 +153,23 @@ export default function SignContract() {
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     
-    // Coordenadas DIRETAS - sem escala, sem devicePixelRatio
+    // Calcular coordenadas relativas ao canvas
     const x = clientX - rect.left;
     const y = clientY - rect.top;
     
-    return [x, y];
+    // Detectar se é desktop
+    const isDesktop = !('ontouchstart' in window) && window.innerWidth > 768;
+    
+    if (isDesktop) {
+      // Aplicar escala do devicePixelRatio apenas no DESKTOP
+      const dpr = window.devicePixelRatio || 1;
+      const scaledX = x * dpr;
+      const scaledY = y * dpr;
+      return [scaledX, scaledY];
+    } else {
+      // Coordenadas DIRETAS para MOBILE
+      return [x, y];
+    }
   };
 
   // Filtro de suavização para reduzir tremores
