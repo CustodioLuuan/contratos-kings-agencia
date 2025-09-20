@@ -217,7 +217,9 @@ export const generateContractPDF = async (contract: Contract, clientSignature?: 
         });
         
         // Detectar se foi assinado em mobile em tela cheia (horizontal)
-        const isMobileFullscreen = img.width > img.height;
+        // Assinaturas em mobile tela cheia têm proporção muito landscape (width >> height)
+        const aspectRatio = img.width / img.height;
+        const isMobileFullscreen = aspectRatio > 2.0; // Proporção muito landscape
         
         if (isMobileFullscreen) {
           // Para mobile em tela cheia, rotacionar a assinatura
