@@ -469,15 +469,24 @@ export default function Dashboard() {
           // Desenhar a imagem original
           ctx.drawImage(img, 0, 0);
           
-          // Aplicar filtro para inverter cores (preto vira branco)
+          // Aplicar filtro para inverter cores (preto vira branco) mas manter fundo transparente
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const data = imageData.data;
           for (let i = 0; i < data.length; i += 4) {
-            // Inverter RGB para branco
-            data[i] = 255 - data[i];     // R
-            data[i + 1] = 255 - data[i + 1]; // G
-            data[i + 2] = 255 - data[i + 2]; // B
-            // Manter alpha
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            
+            // Se o pixel é branco (fundo), tornar transparente
+            if (r > 240 && g > 240 && b > 240) {
+              data[i + 3] = 0; // Alpha = 0 (transparente)
+            } else {
+              // Para pixels escuros (assinatura), inverter para branco
+              data[i] = 255 - r;     // R
+              data[i + 1] = 255 - g; // G
+              data[i + 2] = 255 - b; // B
+              // Manter alpha original
+            }
           }
           ctx.putImageData(imageData, 0, 0);
           
