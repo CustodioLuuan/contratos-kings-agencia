@@ -463,11 +463,24 @@ export default function Dashboard() {
             img.src = contract.signature_data!;
           });
           
-          canvas.width = img.width;
-          canvas.height = img.height;
+          // Detectar se foi assinado em mobile em tela cheia (horizontal)
+          // Assinaturas em mobile tela cheia tendem a ter proporção landscape (width > height)
+          const isMobileFullscreen = img.width > img.height;
           
-          // Desenhar a imagem original
-          ctx.drawImage(img, 0, 0);
+          if (isMobileFullscreen) {
+            // Para mobile em tela cheia, rotacionar a assinatura
+            canvas.width = img.height; // Trocar width e height
+            canvas.height = img.width;
+            
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate(-Math.PI / 2); // Rotacionar -90 graus
+            ctx.drawImage(img, -img.width / 2, -img.height / 2);
+          } else {
+            // Para desktop e mobile normal, manter orientação original
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+          }
           
           // Aplicar filtro para inverter cores (preto vira branco) mas manter fundo transparente
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
