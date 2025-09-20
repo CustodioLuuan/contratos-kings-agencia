@@ -157,7 +157,7 @@ export default function SignContract() {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
     };
-  }, []);
+  }, [isMobile, isFullscreen]);
 
   const getPosition = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, canvas: HTMLCanvasElement) => {
     const rect = canvas.getBoundingClientRect();
@@ -171,20 +171,25 @@ export default function SignContract() {
     // Detectar se é desktop
     const isDesktop = !('ontouchstart' in window) && window.innerWidth > 768;
     
-    // Detectar se é mobile em tela cheia
+    // Detectar se é mobile em tela cheia - usar estado atual
     const isMobileFullscreen = isMobile && isFullscreen;
+    
+    console.log('getPosition - isMobile:', isMobile, 'isFullscreen:', isFullscreen, 'isMobileFullscreen:', isMobileFullscreen);
     
     if (isDesktop) {
       // Aplicar escala do devicePixelRatio apenas no DESKTOP
       const dpr = window.devicePixelRatio || 1;
       const scaledX = x * dpr;
       const scaledY = y * dpr;
+      console.log('Desktop - scaled coordinates:', [scaledX, scaledY]);
       return [scaledX, scaledY];
     } else if (isMobileFullscreen) {
       // Coordenadas DIRETAS para MOBILE em tela cheia
+      console.log('Mobile Fullscreen - direct coordinates:', [x, y]);
       return [x, y];
     } else {
       // Coordenadas DIRETAS para MOBILE normal
+      console.log('Mobile Normal - direct coordinates:', [x, y]);
       return [x, y];
     }
   };
@@ -533,11 +538,23 @@ export default function SignContract() {
               img.src = clientSignature;
             });
             
-            canvas.width = img.width;
-            canvas.height = img.height;
-            
-            // Desenhar a imagem original
-            ctx.drawImage(img, 0, 0);
+              // Detectar se foi assinado em mobile em tela cheia (horizontal)
+              const isMobileFullscreen = isMobile && isFullscreen;
+              
+              if (isMobileFullscreen) {
+                // Para mobile em tela cheia, rotacionar a assinatura
+                canvas.width = img.height; // Trocar width e height
+                canvas.height = img.width;
+                
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(-Math.PI / 2); // Rotacionar -90 graus
+                ctx.drawImage(img, -img.width / 2, -img.height / 2);
+              } else {
+                // Para desktop e mobile normal, manter orientação original
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+              }
             
             // Aplicar filtro para inverter cores (preto vira branco)
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
